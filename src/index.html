@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>同棲準備・引越し 統合ダッシュボード</title>
+  <!-- Google Fonts: Outfit, Inter, Noto Sans JP -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS CDN (開発用のフォールバック) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              200: '#bae6fd',
+              300: '#7dd3fc',
+              400: '#38bdf8',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              700: '#0369a1',
+              800: '#075985',
+              900: '#0c4a6e',
+            },
+            secondary: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              200: '#c7d2fe',
+              300: '#a5b4fc',
+              400: '#818cf8',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              800: '#3730a3',
+              900: '#312e81',
+            }
+          },
+          fontFamily: {
+            sans: ['Outfit', 'Inter', 'Noto Sans JP', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <!-- 開発時のローカルスタイル -->
+  <link rel="stylesheet" href="/src/style.css">
+  <style>
+    body {
+      -webkit-tap-highlight-color: transparent;
+      padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+    }
+    .safe-bottom {
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    .fade-enter-active, .fade-leave-active {
+      transition: opacity 0.2s ease;
+    }
+    .fade-enter-from, .fade-leave-to {
+      opacity: 0;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased font-sans selection:bg-primary-200">
+  <div id="app" class="max-w-md mx-auto min-h-screen flex flex-col bg-slate-50 shadow-lg relative pb-4">
+    
+    <!-- 通知トースト -->
+    <transition name="fade">
+      <div v-if="syncNotification.type" 
+           :class="[
+             'fixed top-4 left-1/2 -translate-x-1/2 z-50 w-11/12 max-w-sm p-4 rounded-2xl shadow-xl flex items-center gap-3 transition-all duration-300 border',
+             syncNotification.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-rose-50 border-rose-200 text-rose-800'
+           ]">
+        <span v-if="syncNotification.type === 'success'" class="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+        </span>
+        <span v-else class="w-6 h-6 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 shrink-0">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </span>
+        <p class="text-sm font-medium">{{ syncNotification.message }}</p>
+      </div>
+    </transition>
+
+    <!-- ヘッダー -->
+    <header class="sticky top-0 bg-white/80 backdrop-blur-md border-b border-slate-100 px-4 py-3.5 z-40 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-primary-500 to-secondary-500 flex items-center justify-center text-white shadow-md shadow-primary-200">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-base font-bold tracking-tight text-slate-900 leading-none">ふたりの新居準備</h1>
+          <span class="text-[10px] text-slate-400 font-medium tracking-wider">HIKKOSHI DASHBOARD</span>
+        </div>
+      </div>
+      <!-- LINE クイック同期ボタン -->
+      <button @click="exportSyncCode" 
+              class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold transition-all shadow-sm active:scale-95">
+        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12 2C6.48 2 2 5.58 2 10.02c0 2.21 1.09 4.2 2.88 5.61-.17.6-.64 2.21-.73 2.53-.1.35.08.34.17.29.09-.05 1.54-.95 2.15-1.37.52.14 1.07.22 1.63.22 5.52 0 10-3.58 10-8.02S17.52 2 12 2z"></path>
+        </svg>
+        <span>LINE同期</span>
+      </button>
+    </header>
+
+    <!-- メインコンテンツ -->
+    <main class="flex-grow px-4 pt-4 pb-20">
+      
+      <!-- 1. ダッシュボードビュー -->
+      <div v-if="activeTab === 'dashboard'" class="space-y-6">
+        
+        <!-- 全体進捗カード -->
+        <div class="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm relative overflow-hidden">
+          <div class="absolute -right-6 -top-6 w-24 h-24 bg-primary-50 rounded-full blur-2xl"></div>
+          <div class="absolute -left-6 -bottom-6 w-24 h-24 bg-secondary-50 rounded-full blur-2xl"></div>
+          
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h2 class="text-sm font-bold text-slate-400 tracking-wider">全体進捗</h2>
+              <p class="text-2xl font-black text-slate-900 tracking-tight mt-0.5">着実に新生活へ</p>
+            </div>
+            <span class="text-xs font-bold text-primary-600 bg-primary-50 px-3 py-1 rounded-full border border-primary-100">
+              全 {{ totalTaskCount }} タスク
+            </span>
+          </div>
+
+          <div class="flex items-center gap-6">
+            <!-- 円形進捗バー (SVG) -->
+            <div class="relative w-28 h-28 shrink-0 flex items-center justify-center">
+              <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="40" stroke="#f1f5f9" stroke-width="10" fill="transparent" />
+                <circle cx="50" cy="50" r="40" stroke="url(#gradient)" stroke-width="10" fill="transparent"
+                        stroke-linecap="round"
+                        :stroke-dasharray="2 * Math.PI * 40"
+                        :stroke-dashoffset="2 * Math.PI * 40 * (1 - taskStats.overallProgress / 100)"
+                        class="transition-all duration-1000 ease-out-back" />
+                <defs>
+                  <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#0ea5e9" />
+                    <stop offset="100%" stop-color="#6366f1" />
+                  </linearGradient>
+                </defs>
+              </svg>
+              <div class="absolute flex flex-col items-center">
+                <span class="text-2xl font-extrabold text-slate-900 tracking-tighter">{{ taskStats.overallProgress }}<span class="text-xs font-semibold">%</span></span>
+                <span class="text-[9px] text-slate-400 font-bold tracking-wider leading-none">完了</span>
+              </div>
+            </div>
+
+            <!-- 進捗詳細 -->
+            <div class="flex-grow space-y-3">
+              <!-- 愛翔 -->
+              <div>
+                <div class="flex justify-between items-baseline mb-1">
+                  <span class="text-xs font-bold text-slate-700">愛翔の進捗</span>
+                  <span class="text-xs font-semibold text-slate-500">{{ taskStats.aiDone }} / {{ taskStats.aiTotal }}</span>
+                </div>
+                <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                  <div class="bg-primary-500 h-full rounded-full transition-all duration-700" :style="{ width: taskStats.aiProgress + '%' }"></div>
+                </div>
+              </div>
+              <!-- 竣介 -->
+              <div>
+                <div class="flex justify-between items-baseline mb-1">
+                  <span class="text-xs font-bold text-slate-700">竣介の進捗</span>
+                  <span class="text-xs font-semibold text-slate-500">{{ taskStats.shunsukeDone }} / {{ taskStats.shunsukeTotal }}</span>
+                </div>
+                <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                  <div class="bg-secondary-500 h-full rounded-full transition-all duration-700" :style="{ width: taskStats.shunsukeProgress + '%' }"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 費用サマリーカード -->
+        <div class="bg-gradient-to-br from-slate-900 to-indigo-950 rounded-3xl p-5 text-white shadow-lg relative overflow-hidden border border-slate-800">
+          <div class="absolute -right-12 -bottom-12 w-32 h-32 bg-secondary-500 rounded-full blur-3xl opacity-20"></div>
+          
+          <div class="flex items-center justify-between mb-4 border-b border-white/10 pb-3">
+            <div>
+              <h2 class="text-xs font-bold text-slate-400 tracking-wider">初期費用概算</h2>
+              <p class="text-2xl font-black tracking-tight mt-0.5">{{ costSummary.total.toLocaleString() }} <span class="text-sm font-normal text-slate-300">円</span></p>
+            </div>
+            <button @click="activeTab = 'costs'" class="text-[10px] font-bold text-secondary-300 hover:text-white bg-white/5 border border-white/10 px-2.5 py-1 rounded-full transition-all">
+              シミュレーターを開く &rarr;
+            </button>
+          </div>
+
+          <!-- 負担額比較 -->
+          <div class="space-y-4">
+            <div class="grid grid-cols-2 gap-4">
+              <div class="bg-white/5 p-3 rounded-2xl border border-white/5">
+                <span class="text-[10px] text-slate-400 font-bold block mb-1">愛翔 負担額</span>
+                <span class="text-base font-extrabold text-primary-300">{{ costSummary.totalAi.toLocaleString() }} 円</span>
+              </div>
+              <div class="bg-white/5 p-3 rounded-2xl border border-white/5">
+                <span class="text-[10px] text-slate-400 font-bold block mb-1">竣介 負担額</span>
+                <span class="text-base font-extrabold text-secondary-300">{{ costSummary.totalShunsuke.toLocaleString() }} 円</span>
+              </div>
+            </div>
+
+            <!-- スタックバー (割合) -->
+            <div class="space-y-1">
+              <div class="w-full h-3 bg-white/10 rounded-full flex overflow-hidden">
+                <div class="bg-primary-500 h-full transition-all duration-500" 
+                     :style="{ width: (costSummary.total > 0 ? (costSummary.totalAi / costSummary.total) * 100 : 50) + '%' }"></div>
+                <div class="bg-secondary-500 h-full transition-all duration-500" 
+                     :style="{ width: (costSummary.total > 0 ? (costSummary.totalShunsuke / costSummary.total) * 100 : 50) + '%' }"></div>
+              </div>
+              <div class="flex justify-between text-[9px] text-slate-400 font-bold px-1">
+                <span>愛翔: {{ costSummary.total > 0 ? Math.round((costSummary.totalAi / costSummary.total) * 100) : 50 }}%</span>
+                <span>竣介: {{ costSummary.total > 0 ? Math.round((costSummary.totalShunsuke / costSummary.total) * 100) : 50 }}%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 優先タスク -->
+        <div class="space-y-3">
+          <div class="flex items-center justify-between px-1">
+            <h3 class="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+              <svg class="w-4 h-4 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+              直近で対応すべきタスク
+            </h3>
+            <button @click="activeTab = 'tasks'" class="text-xs font-bold text-primary-500 hover:text-primary-600 active:scale-95">
+              一覧をみる
+            </button>
+          </div>
+
+          <div class="space-y-2.5">
+            <div v-for="task in priorityTasks" :key="task.id" 
+                 class="bg-white p-3.5 rounded-2xl border border-slate-100 shadow-sm flex items-start justify-between gap-3">
+              <div class="space-y-1">
+                <span class="text-[9px] font-bold text-primary-500 bg-primary-50 px-2 py-0.5 rounded-md border border-primary-100">
+                  {{ task.category }}
+                </span>
+                <h4 class="text-xs font-bold text-slate-800 leading-snug">{{ task.title }}</h4>
+                <p v-if="task.note" class="text-[10px] text-slate-400 leading-normal">{{ task.note }}</p>
+              </div>
+
+              <!-- クイックステータス変更 -->
+              <div class="flex flex-col gap-1.5 shrink-0 items-end">
+                <button @click="toggleTaskStatus(task, 'ai')" 
+                        :class="[
+                          'text-[9px] font-bold px-2 py-1 rounded-full border transition-all text-center min-w-[56px] active:scale-95',
+                          task.statusAi === '未対応' ? 'bg-slate-50 border-slate-200 text-slate-600' :
+                          task.statusAi === '進行中' ? 'bg-amber-50 border-amber-200 text-amber-600' :
+                          task.statusAi === '済' ? 'bg-emerald-50 border-emerald-200 text-emerald-600' :
+                          'bg-rose-50 border-rose-200 text-rose-500'
+                        ]">
+                  愛翔: {{ task.statusAi }}
+                </button>
+                <button @click="toggleTaskStatus(task, 'shunsuke')" 
+                        :class="[
+                          'text-[9px] font-bold px-2 py-1 rounded-full border transition-all text-center min-w-[56px] active:scale-95',
+                          task.statusShunsuke === '未対応' ? 'bg-slate-50 border-slate-200 text-slate-600' :
+                          task.statusShunsuke === '進行中' ? 'bg-amber-50 border-amber-200 text-amber-600' :
+                          task.statusShunsuke === '済' ? 'bg-emerald-50 border-emerald-200 text-emerald-600' :
+                          'bg-rose-50 border-rose-200 text-rose-500'
+                        ]">
+                  竣介: {{ task.statusShunsuke }}
+                </button>
+              </div>
+            </div>
+
+            <div v-if="priorityTasks.length === 0" class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm text-center py-8">
+              <span class="text-2xl block mb-2">🎉</span>
+              <p class="text-xs font-bold text-slate-800">すべての優先タスクに対応しました！</p>
+              <p class="text-[10px] text-slate-400 mt-0.5">素晴らしい段取りです。</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 2. タスク管理ビュー -->
+      <div v-if="activeTab === 'tasks'" class="space-y-4">
+        
+        <!-- 検索・フィルターエリア -->
+        <div class="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm space-y-3">
+          <div class="relative">
+            <input type="text" v-model="searchQuery" 
+                   placeholder="タスクを検索..." 
+                   class="w-full bg-slate-50 border border-slate-200 text-xs rounded-2xl pl-9 pr-4 py-2.5 outline-none focus:border-primary-400 focus:bg-white transition-all">
+            <svg class="w-4 h-4 text-slate-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2">
+            <div class="col-span-1">
+              <select v-model="filterCategory" class="w-full bg-slate-50 border border-slate-200 text-[10px] font-bold rounded-xl px-2 py-2 outline-none">
+                <option value="all">全カテゴリ</option>
+                <option v-for="cat in categories" :value="cat" :key="cat">{{ cat }}</option>
+              </select>
+            </div>
+            <div class="col-span-1">
+              <select v-model="filterAssignee" class="w-full bg-slate-50 border border-slate-200 text-[10px] font-bold rounded-xl px-2 py-2 outline-none">
+                <option value="all">全員</option>
+                <option value="ai">愛翔の未完了</option>
+                <option value="shunsuke">竣介の未完了</option>
+              </select>
+            </div>
+            <div class="col-span-1">
+              <select v-model="filterStatus" class="w-full bg-slate-50 border border-slate-200 text-[10px] font-bold rounded-xl px-2 py-2 outline-none">
+                <option value="all">全ステータス</option>
+                <option value="未対応">未対応</option>
+                <option value="進行中">進行中</option>
+                <option value="済">済</option>
+                <option value="やらない">やらない</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- タスクアコーディオンリスト -->
+        <div class="space-y-3">
+          <div v-for="(categoryTasks, catName) in filteredTasksByCategory" :key="catName" 
+               class="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden transition-all duration-300">
+            
+            <button @click="toggleCategoryAccordion(catName)" 
+                    class="w-full px-4 py-3.5 flex items-center justify-between hover:bg-slate-50/50 active:bg-slate-50 border-b border-slate-50 select-none">
+              <div class="flex items-center gap-2">
+                <span class="w-1.5 h-3.5 rounded-full bg-gradient-to-b from-primary-400 to-secondary-500"></span>
+                <span class="text-xs font-bold text-slate-800">{{ catName }}</span>
+                <span class="text-[10px] font-bold bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full border border-slate-200/50">
+                  {{ categoryTasks.length }}
+                </span>
+              </div>
+              <svg class="w-4 h-4 text-slate-400 transition-transform duration-300" 
+                   :class="{ 'rotate-180': taskCategoryOpen[catName] }"
+                   fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"></path></svg>
+            </button>
+
+            <div v-show="taskCategoryOpen[catName]" class="divide-y divide-slate-100 transition-all duration-300">
+              <div v-for="task in categoryTasks" :key="task.id" class="p-3.5 flex flex-col gap-2">
+                
+                <div class="space-y-0.5">
+                  <div class="flex items-start gap-2">
+                    <span class="text-[10px] text-slate-300 font-bold font-mono mt-0.5">#{{ task.id }}</span>
+                    <h4 class="text-xs font-bold text-slate-800 leading-snug">{{ task.title }}</h4>
+                  </div>
+                  <p v-if="task.note" class="text-[10px] text-slate-400 leading-normal pl-6">{{ task.note }}</p>
+                </div>
+
+                <div class="flex items-center justify-end gap-3 pl-6 mt-1">
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-[10px] text-slate-400 font-bold">愛翔</span>
+                    <button @click="toggleTaskStatus(task, 'ai')" 
+                            :class="[
+                              'text-[10px] font-bold px-3 py-1 rounded-full border transition-all text-center min-w-[64px] active:scale-95',
+                              task.statusAi === '未対応' ? 'bg-slate-50 border-slate-200 text-slate-600' :
+                              task.statusAi === '進行中' ? 'bg-amber-50 border-amber-200 text-amber-600' :
+                              task.statusAi === '済' ? 'bg-emerald-50 border-emerald-200 text-emerald-600' :
+                              'bg-rose-50 border-rose-200 text-rose-500'
+                            ]">
+                      {{ task.statusAi }}
+                    </button>
+                  </div>
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-[10px] text-slate-400 font-bold">竣介</span>
+                    <button @click="toggleTaskStatus(task, 'shunsuke')" 
+                            :class="[
+                              'text-[10px] font-bold px-3 py-1 rounded-full border transition-all text-center min-w-[64px] active:scale-95',
+                              task.statusShunsuke === '未対応' ? 'bg-slate-50 border-slate-200 text-slate-600' :
+                              task.statusShunsuke === '進行中' ? 'bg-amber-50 border-amber-200 text-amber-600' :
+                              task.statusShunsuke === '済' ? 'bg-emerald-50 border-emerald-200 text-emerald-600' :
+                              'bg-rose-50 border-rose-200 text-rose-500'
+                            ]">
+                      {{ task.statusShunsuke }}
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+
+          <div v-if="Object.keys(filteredTasksByCategory).length === 0" class="bg-white p-10 rounded-3xl border border-slate-100 shadow-sm text-center">
+            <span class="text-3xl block mb-2">🔍</span>
+            <p class="text-xs font-bold text-slate-800">一致するタスクが見つかりません</p>
+            <p class="text-[10px] text-slate-400 mt-1">検索ワードやフィルターを変更してください。</p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 3. お金シミュレータービュー -->
+      <div v-if="activeTab === 'costs'" class="space-y-6">
+        
+        <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-sm font-bold text-slate-900">一括負担比率調整</h3>
+              <p class="text-[10px] text-slate-400 mt-0.5">すべての初期費用の比率を一括で変更します</p>
+            </div>
+            <span class="text-sm font-extrabold text-primary-500">
+              愛翔: {{ globalRatioAi }}% / 竣介: {{ 100 - globalRatioAi }}%
+            </span>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <span class="text-[10px] text-slate-400 font-bold shrink-0">愛翔</span>
+            <input type="range" min="0" max="100" v-model.number="globalRatioAi" @input="applyGlobalRatio(globalRatioAi)" 
+                   class="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-primary-500 outline-none">
+            <span class="text-[10px] text-slate-400 font-bold shrink-0">竣介</span>
+          </div>
+
+          <div class="flex gap-2">
+            <button v-for="pct in [30, 40, 50, 60, 70]" :key="pct" 
+                    @click="applyGlobalRatio(pct)" 
+                    :class="[
+                      'flex-grow text-[10px] font-bold py-1.5 rounded-xl border transition-all active:scale-95',
+                      globalRatioAi === pct ? 'bg-primary-500 border-primary-500 text-white shadow-sm' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                    ]">
+              {{ pct === 50 ? '折半 (5:5)' : `愛翔 ${pct}%` }}
+            </button>
+          </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-4">
+          <h3 class="text-sm font-bold text-slate-900">負担比率のビジュアル化</h3>
+          
+          <div class="flex flex-col gap-4">
+            <div class="space-y-1">
+              <div class="w-full h-8 bg-slate-100 rounded-2xl flex overflow-hidden shadow-inner border border-slate-200/50">
+                <div class="bg-gradient-to-r from-primary-400 to-primary-500 h-full flex items-center justify-center text-[10px] font-black text-white transition-all duration-300"
+                     :style="{ width: (costSummary.total > 0 ? (costSummary.totalAi / costSummary.total) * 100 : 50) + '%' }">
+                  <span v-if="costSummary.totalAi > 0">愛翔</span>
+                </div>
+                <div class="bg-gradient-to-r from-secondary-400 to-secondary-500 h-full flex items-center justify-center text-[10px] font-black text-white transition-all duration-300"
+                     :style="{ width: (costSummary.total > 0 ? (costSummary.totalShunsuke / costSummary.total) * 100 : 50) + '%' }">
+                  <span v-if="costSummary.totalShunsuke > 0">竣介</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div class="bg-gradient-to-br from-primary-50 to-sky-100/50 p-3.5 rounded-2xl border border-primary-100 relative overflow-hidden">
+                <span class="text-[10px] text-primary-700 font-bold block mb-0.5">愛翔の負担総額</span>
+                <span class="text-lg font-black text-primary-900 leading-none">{{ costSummary.totalAi.toLocaleString() }} <span class="text-xs font-normal">円</span></span>
+              </div>
+              <div class="bg-gradient-to-br from-secondary-50 to-indigo-100/50 p-3.5 rounded-2xl border border-secondary-100 relative overflow-hidden">
+                <span class="text-[10px] text-secondary-700 font-bold block mb-0.5">竣介の負担総額</span>
+                <span class="text-lg font-black text-secondary-900 leading-none">{{ costSummary.totalShunsuke.toLocaleString() }} <span class="text-xs font-normal">円</span></span>
+              </div>
+            </div>
+
+            <div class="bg-slate-50 border border-slate-200/60 p-3 rounded-2xl text-center">
+              <span class="text-[10px] text-slate-400 font-bold block">合計初期費用</span>
+              <span class="text-xl font-black text-slate-900">{{ costSummary.total.toLocaleString() }} <span class="text-xs font-normal text-slate-500">円</span></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="space-y-3">
+          <div class="flex items-center justify-between px-1">
+            <h3 class="text-sm font-bold text-slate-900">初期費用明細</h3>
+            <span class="text-[10px] text-slate-400 font-bold">項目ごとに比率調整可能</span>
+          </div>
+
+          <div class="space-y-2.5">
+            <div v-for="item in costs" :key="item.id" 
+                 class="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm space-y-3">
+              
+              <div class="flex items-center justify-between gap-3">
+                <span class="text-xs font-bold text-slate-800">{{ item.name }}</span>
+                <div class="relative flex items-center shrink-0">
+                  <input type="number" 
+                         :value="item.amount" 
+                         @input="updateCostAmount(item.id, parseInt($event.target.value) || 0)" 
+                         class="w-32 bg-slate-50 border border-slate-200 text-xs font-bold rounded-xl pr-6 pl-3 py-1.5 text-right outline-none focus:border-primary-400 focus:bg-white transition-all">
+                  <span class="text-[10px] text-slate-400 font-bold absolute right-2.5">円</span>
+                </div>
+              </div>
+
+              <div class="space-y-1 bg-slate-50/60 p-2.5 rounded-2xl border border-slate-100">
+                <div class="flex justify-between text-[9px] text-slate-400 font-bold px-0.5">
+                  <span>愛翔: {{ item.ratioAi }}%</span>
+                  <span>竣介: {{ 100 - item.ratioAi }}%</span>
+                </div>
+                <input type="range" min="0" max="100" v-model.number="item.ratioAi" 
+                       class="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-primary-500 outline-none">
+                <div class="flex justify-between text-[9px] text-slate-400 font-bold px-0.5 mt-1">
+                  <span class="text-primary-600 font-medium">愛翔: {{ Math.round(item.amount * (item.ratioAi / 100)).toLocaleString() }} 円</span>
+                  <span class="text-secondary-600 font-medium">竣介: {{ Math.round(item.amount * ((100 - item.ratioAi) / 100)).toLocaleString() }} 円</span>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 4. お役立ちガイドビュー -->
+      <div v-if="activeTab === 'guide'" class="space-y-6">
+        
+        <div class="space-y-4">
+          <h2 class="text-sm font-bold text-slate-900 px-1">引越し前後のお役立ちガイド</h2>
+
+          <div class="space-y-3">
+            <div class="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm space-y-2">
+              <span class="text-[9px] font-bold text-primary-500 bg-primary-50 px-2.5 py-0.5 rounded-md border border-primary-100 inline-block font-medium">
+                引越し前（14日前まで）
+              </span>
+              <h3 class="text-xs font-bold text-slate-800">1. 転出届の提出（役所関係）</h3>
+              <p class="text-[10px] text-slate-500 leading-relaxed">
+                現住所の市役所・区役所へ転出届を提出します。現在、マイナンバーカードをお持ちであれば「マイナポータル」アプリからオンラインで申請が可能です。
+              </p>
+              <div class="bg-slate-50 p-2.5 rounded-2xl border border-slate-100 text-[10px] text-slate-600 space-y-1">
+                <div class="flex gap-1.5"><span class="text-primary-500 font-bold">●</span><span><strong>持ち物:</strong> マイナンバーカード、または本人確認書類</span></div>
+                <div class="flex gap-1.5"><span class="text-primary-500 font-bold">●</span><span><strong>注意:</strong> 転出証明書（オンラインでない場合）は新居の役所に提出するため大切に保管してください。</span></div>
+              </div>
+            </div>
+
+            <div class="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm space-y-2">
+              <span class="text-[9px] font-bold text-amber-500 bg-amber-50 px-2.5 py-0.5 rounded-md border border-amber-100 inline-block font-medium">
+                引越し2週間前まで
+              </span>
+              <h3 class="text-xs font-bold text-slate-800">2. 電気・ガス・水道・ネットの手続き</h3>
+              <p class="text-[10px] text-slate-500 leading-relaxed">
+                旧居の解約手配と新居の開始手配を同時に行います。電気・水道はインターネットで申請可能ですが、<strong>新居のガス開通は当日の立ち会いが必要</strong>です。
+              </p>
+              <div class="bg-slate-50 p-2.5 rounded-2xl border border-slate-100 text-[10px] text-slate-600 space-y-1">
+                <div class="flex gap-1.5"><span class="text-amber-500 font-bold">●</span><span><strong>当日の流れ:</strong> 引越し当日の希望時間帯にガス会社員が来て、開栓作業を行います。</span></div>
+                <div class="flex gap-1.5"><span class="text-amber-500 font-bold">●</span><span><strong>重要:</strong> 立ち会い日時の事前予約を忘れずに（特に引越しシーズンは混雑します）。</span></div>
+              </div>
+            </div>
+
+            <div class="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm space-y-2">
+              <span class="text-[9px] font-bold text-rose-500 bg-rose-50 px-2.5 py-0.5 rounded-md border border-rose-100 inline-block font-medium">
+                引越し当日
+              </span>
+              <h3 class="text-xs font-bold text-slate-800">3. 搬入前の室内チェック（超重要）</h3>
+              <p class="text-[10px] text-slate-500 leading-relaxed">
+                引越し業者が荷物を搬入する前の、<strong>家具が何もない状態で室内の既存の傷や汚れをチェック</strong>します。
+              </p>
+              <div class="bg-slate-50 p-2.5 rounded-2xl border border-slate-100 text-[10px] text-slate-600 space-y-1">
+                <div class="flex gap-1.5"><span class="text-rose-500 font-bold">●</span><span><strong>傷チェック:</strong> 壁、フローリング、ドア、水回り、クローゼット内部。</span></div>
+                <div class="flex gap-1.5"><span class="text-rose-500 font-bold">●</span><span><strong>記録方法:</strong> 必ずスマホのカメラで日付が入る状態で写真撮影を行い、退去時までデータを保存します。管理会社への提出シートがある場合は当日に記入します。</span></div>
+              </div>
+            </div>
+
+            <div class="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm space-y-2">
+              <span class="text-[9px] font-bold text-secondary-500 bg-secondary-50 px-2.5 py-0.5 rounded-md border border-secondary-100 inline-block font-medium">
+                引越し後（14日以内）
+              </span>
+              <h3 class="text-xs font-bold text-slate-800">4. 役所関係（新居の住所登録）</h3>
+              <p class="text-[10px] text-slate-500 leading-relaxed">
+                新居の役所へ「転入届」を提出します。その際、<strong>世帯主の登録をどうするか</strong>を決めておく必要があります。
+              </p>
+              <div class="bg-slate-50 p-2.5 rounded-2xl border border-slate-100 text-[10px] text-slate-600 space-y-1">
+                <div class="flex gap-1.5"><span class="text-secondary-500 font-bold">●</span><span><strong>世帯構成:</strong> 同棲の場合、「世帯主がふたり（それぞれ独立世帯）」にするか、「片方が世帯主で片方が同居人」にするか選べます。手続き面や会社手当等で有利な方を選びましょう。</span></div>
+                <div class="flex gap-1.5"><span class="text-secondary-500 font-bold">●</span><span><strong>期限:</strong> 転居した日（入居日）から14日以内。</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 5. 同期設定ビュー -->
+      <div v-if="activeTab === 'settings'" class="space-y-6">
+        
+        <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-4">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="w-8 h-8 rounded-xl bg-emerald-500 flex items-center justify-center text-white">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+            </span>
+            <div>
+              <h3 class="text-sm font-bold text-slate-900">LINE簡単データ同期</h3>
+              <p class="text-[10px] text-slate-400">片方のデータを文字列で送り、相手が同期します</p>
+            </div>
+          </div>
+
+          <div class="space-y-3">
+            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200/50 space-y-2">
+              <h4 class="text-xs font-bold text-slate-800">1. 現在のデータを相手に送る</h4>
+              <p class="text-[10px] text-slate-400">現在のタスク状況や負担額の設定を1クリックでコピーし、LINEで相手に貼り付けて送ってください。</p>
+              <button @click="exportSyncCode" 
+                      class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold transition-all shadow-sm active:scale-95">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+                <span>同期コードを発行してコピー</span>
+              </button>
+            </div>
+
+            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200/50 space-y-3">
+              <h4 class="text-xs font-bold text-slate-800">2. 相手のデータを取り込む</h4>
+              <p class="text-[10px] text-slate-400">相手から届いた同期コード（文字列）を下に貼り付け、「インポート実行」をタップします。</p>
+              
+              <textarea v-model="syncInputCode" 
+                        placeholder="ここに同期コードを貼り付けてください..." 
+                        rows="3" 
+                        class="w-full bg-white border border-slate-200 text-[10px] font-mono rounded-xl p-2.5 outline-none focus:border-emerald-400 transition-all"></textarea>
+              
+              <button @click="importSyncCode" 
+                      class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-900 hover:bg-slate-850 text-white text-xs font-bold transition-all shadow-sm active:scale-95">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                <span>インポート実行</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-3">
+          <h3 class="text-sm font-bold text-slate-900">システム管理</h3>
+          <p class="text-[10px] text-slate-400">アプリをリセットするか、デフォルトに戻します。</p>
+          <button @click="resetAllData" 
+                  class="w-full py-2.5 text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 hover:bg-rose-100 active:bg-rose-200 rounded-2xl transition-all">
+            すべてのデータをリセット
+          </button>
+        </div>
+
+      </div>
+
+    </main>
+
+    <!-- 下部固定タブナビゲーション -->
+    <nav class="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-100 shadow-xl max-w-md mx-auto safe-bottom">
+      <div class="flex justify-around items-center h-16 px-2">
+        <button @click="activeTab = 'dashboard'" 
+                :class="['flex flex-col items-center justify-center w-16 h-12 rounded-xl transition-all active:scale-95', activeTab === 'dashboard' ? 'text-primary-500 font-bold bg-primary-50/50' : 'text-slate-400 hover:text-slate-600']">
+          <svg class="w-5.5 h-5.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z"></path></svg>
+          <span class="text-[9px] mt-0.5">進捗</span>
+        </button>
+
+        <button @click="activeTab = 'tasks'" 
+                :class="['flex flex-col items-center justify-center w-16 h-12 rounded-xl transition-all active:scale-95', activeTab === 'tasks' ? 'text-primary-500 font-bold bg-primary-50/50' : 'text-slate-400 hover:text-slate-600']">
+          <svg class="w-5.5 h-5.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+          <span class="text-[9px] mt-0.5">タスク</span>
+        </button>
+
+        <button @click="activeTab = 'costs'" 
+                :class="['flex flex-col items-center justify-center w-16 h-12 rounded-xl transition-all active:scale-95', activeTab === 'costs' ? 'text-primary-500 font-bold bg-primary-50/50' : 'text-slate-400 hover:text-slate-600']">
+          <svg class="w-5.5 h-5.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <span class="text-[9px] mt-0.5">お金</span>
+        </button>
+
+        <button @click="activeTab = 'guide'" 
+                :class="['flex flex-col items-center justify-center w-16 h-12 rounded-xl transition-all active:scale-95', activeTab === 'guide' ? 'text-primary-500 font-bold bg-primary-50/50' : 'text-slate-400 hover:text-slate-600']">
+          <svg class="w-5.5 h-5.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+          <span class="text-[9px] mt-0.5">ガイド</span>
+        </button>
+
+        <button @click="activeTab = 'settings'" 
+                :class="['flex flex-col items-center justify-center w-16 h-12 rounded-xl transition-all active:scale-95', activeTab === 'settings' ? 'text-primary-500 font-bold bg-primary-50/50' : 'text-slate-400 hover:text-slate-600']">
+          <svg class="w-5.5 h-5.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+          <span class="text-[9px] mt-0.5">同期設定</span>
+        </button>
+      </div>
+    </nav>
+
+  </div>
+
+  <!-- JavaScript エントリーポイント -->
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

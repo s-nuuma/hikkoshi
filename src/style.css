@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-800 antialiased font-sans select-none pb-20;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* アコーディオンなどのカスタムアニメーション */
+.accordion-enter-active,
+.accordion-leave-active {
+  transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+  max-height: 500px;
+  overflow: hidden;
+}
+
+.accordion-enter-from,
+.accordion-leave-to {
+  max-height: 0;
+  opacity: 0;
+}
+
+/* カスタムスクロールバー */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-200 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-slate-300;
+}
+
+/* 下部固定タブバーのセーフエリア対応 */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
