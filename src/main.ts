@@ -10,6 +10,34 @@ import {
 } from './utils';
 import type { Task, CostItem, MonthlyCostItem, TaskStatus, SyncData } from './types';
 
+// Firebase Global Type Declaration
+declare global {
+  interface Window {
+    firebase?: any;
+  }
+}
+
+// Firebase configuration
+const firebaseConfig = {
+  projectId: "hikkoshi-sync-52026",
+  appId: "1:1067926629945:web:8df2e7798ef54b74bc67e8",
+  storageBucket: "hikkoshi-sync-52026.firebasestorage.app",
+  apiKey: "AIzaSyCNJ4haNFMk0QF-d6_EEKv1e4TEeEBruJg",
+  authDomain: "hikkoshi-sync-52026.firebaseapp.com",
+  messagingSenderId: "1067926629945"
+};
+
+let db: any = null;
+
+if (typeof window !== 'undefined' && window.firebase) {
+  try {
+    window.firebase.initializeApp(firebaseConfig);
+    db = window.firebase.firestore();
+  } catch (e) {
+    console.error('Firebase initialization failed:', e);
+  }
+}
+
 const app = createApp({
   setup() {
     // 状態管理
@@ -19,6 +47,11 @@ const app = createApp({
     const globalRatioShunsuke = ref<number>(50); // 竣介基準の負担比率 (デフォルト 50%)
     const globalMonthlyRatioShunsuke = ref<number>(50); // 竣介基準の生活費負担比率 (デフォルト 50%)
     const activeTab = ref<'dashboard' | 'tasks' | 'costs' | 'guide' | 'settings'>('dashboard');
+    
+    // Firebase自動同期用の状態
+    const roomId = ref<string>('');
+    const syncStatus = ref<'connected' | 'offline' | 'connecting'>('offline');
+    let isApplyingSync = false;
     
     // タスク管理タブ用の検索・フィルタ状態
     const searchQuery = ref('');
@@ -76,10 +109,35 @@ const app = createApp({
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     };
 
-    // 状態変更を監視して自動保存
+    // 状態変更を監視して自動保存＆クラウド同期
     watch([tasks, costs, monthlyCosts, globalRatioShunsuke, globalMonthlyRatioShunsuke], () => {
       saveToLocalStorage();
+      
+      // 自分が変更操作をした場合のみFirestoreに同期送信する
+      if (!isApplyingSync && db && roomId.value) {
+        db.collection('rooms').doc(roomId.value).set({
+          tasks: tasks.value.map(t => ({ id: t.id, s: t.statusShunsuke, a: t.statusAika })),
+          costs: costs.value.map(c => ({ id: c.id, amount: c.amount, ratio: c.ratioShunsuke })),
+          monthlyCosts: monthlyCosts.value.map(c => ({ id: c.id, amount: c.amount })),
+          globalRatioShunsuke: globalRatioShunsuke.value,
+          globalMonthlyRatioShunsuke: globalMonthlyRatioShunsuke.value,
+          updatedAt: new Date().toISOString()
+        }).catch((err: any) => {
+          console.error('Firestore auto-sync save failed:', err);
+          syncStatus.value = 'offline';
+        });
+      }
     }, { deep: true });
+
+    // ランダムな部屋ID生成 (8桁英数字)
+    const generateRoomId = () => {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      let result = '';
+      for (let i = 0; i < 8; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return result;
+    };
 
     onMounted(() => {
       loadFromLocalStorage();
@@ -91,6 +149,90 @@ const app = createApp({
           taskCategoryOpen.value[cat] = true;
         }
       });
+
+      // 部屋ID（ルームID）の初期化と自動同期の開始
+      if (typeof window !== 'undefined') {
+        const urlParams = new URLSearchParams(window.location.search);
+        let room = urlParams.get('room');
+        
+        if (!room) {
+          room = generateRoomId();
+          const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?room=' + room;
+          window.history.replaceState({ path: newUrl }, '', newUrl);
+        }
+        roomId.value = room;
+
+        // Firestoreのリアルタイム購読開始
+        if (db) {
+          syncStatus.value = 'connecting';
+          db.collection('rooms').doc(room).onSnapshot((doc: any) => {
+            if (doc.exists) {
+              const data = doc.data();
+              isApplyingSync = true;
+              
+              // 受信データの適用
+              if (Array.isArray(data.tasks)) {
+                data.tasks.forEach((dt: any) => {
+                  const t = tasks.value.find(item => item.id === dt.id);
+                  if (t) {
+                    t.statusShunsuke = dt.s;
+                    t.statusAika = dt.a;
+                  }
+                });
+              }
+              if (Array.isArray(data.costs)) {
+                data.costs.forEach((dc: any) => {
+                  const c = costs.value.find(item => item.id === dc.id);
+                  if (c) {
+                    c.amount = dc.amount;
+                    c.ratioShunsuke = dc.ratio;
+                  }
+                });
+              }
+              if (Array.isArray(data.monthlyCosts)) {
+                data.monthlyCosts.forEach((dmc: any) => {
+                  const mc = monthlyCosts.value.find(item => item.id === dmc.id);
+                  if (mc) {
+                    mc.amount = dmc.amount;
+                  }
+                });
+              }
+              if (typeof data.globalRatioShunsuke === 'number') {
+                globalRatioShunsuke.value = data.globalRatioShunsuke;
+              }
+              if (typeof data.globalMonthlyRatioShunsuke === 'number') {
+                globalMonthlyRatioShunsuke.value = data.globalMonthlyRatioShunsuke;
+              }
+
+              isApplyingSync = false;
+              syncStatus.value = 'connected';
+            } else {
+              // 部屋ドキュメントが存在しない場合は新規に作成（初期状態をアップロード）
+              isApplyingSync = true;
+              db.collection('rooms').doc(room).set({
+                tasks: tasks.value.map(t => ({ id: t.id, s: t.statusShunsuke, a: t.statusAika })),
+                costs: costs.value.map(c => ({ id: c.id, amount: c.amount, ratio: c.ratioShunsuke })),
+                monthlyCosts: monthlyCosts.value.map(c => ({ id: c.id, amount: c.amount })),
+                globalRatioShunsuke: globalRatioShunsuke.value,
+                globalMonthlyRatioShunsuke: globalMonthlyRatioShunsuke.value,
+                updatedAt: new Date().toISOString()
+              }).then(() => {
+                isApplyingSync = false;
+                syncStatus.value = 'connected';
+              }).catch((err: any) => {
+                console.error('Initial Firestore set failed:', err);
+                isApplyingSync = false;
+                syncStatus.value = 'offline';
+              });
+            }
+          }, (err: any) => {
+            console.error('Firestore snapshot subscription failed:', err);
+            syncStatus.value = 'offline';
+          });
+        } else {
+          syncStatus.value = 'offline';
+        }
+      }
     });
 
     // --- 計算プロパティ ---
@@ -376,7 +518,29 @@ const app = createApp({
         globalRatioShunsuke.value = 50;
         globalMonthlyRatioShunsuke.value = 50;
         localStorage.removeItem(STORAGE_KEY);
+        
+        // 部屋IDを再生成してURL更新
+        if (typeof window !== 'undefined') {
+          const room = generateRoomId();
+          const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?room=' + room;
+          window.history.replaceState({ path: newUrl }, '', newUrl);
+          roomId.value = room;
+        }
+        
         showNotification('success', 'データを初期化しました。');
+      }
+    };
+
+    // 招待用URLのコピー
+    const copyInviteUrl = () => {
+      if (typeof window !== 'undefined' && roomId.value) {
+        const inviteUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?room=' + roomId.value;
+        navigator.clipboard.writeText(inviteUrl).then(() => {
+          showNotification('success', '招待用URLをコピーしました！LINE等でパートナーに送ってください。');
+        }).catch(err => {
+          console.error('Invite URL copy failed:', err);
+          showNotification('error', 'URLのコピーに失敗しました。手動でURLをコピーしてください。');
+        });
       }
     };
 
@@ -386,6 +550,9 @@ const app = createApp({
       monthlyCosts,
       globalRatioShunsuke,
       globalMonthlyRatioShunsuke,
+      roomId,
+      syncStatus,
+      copyInviteUrl,
       activeTab,
       searchQuery,
       filterCategory,
