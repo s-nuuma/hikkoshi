@@ -1,4 +1,4 @@
-import type { Task, CostItem, MonthlyCostItem, SyncData } from './types';
+import type { Task, CostItem, MonthlyCostItem, PropertyDimensions, PropertyNotes, SyncData } from './types';
 
 // 初期費用データ定義
 export const getInitialCosts = (): CostItem[] => [
@@ -16,7 +16,7 @@ export const getInitialCosts = (): CostItem[] => [
 export const getInitialMonthlyCosts = (): MonthlyCostItem[] => [
   { id: 'rent_management', name: '家賃・管理費', amount: 160000 },
   { id: 'electricity', name: '電気代（木造平均想定）', amount: 11000 },
-  { id: 'gas', name: 'ガス代（都市ガス）', amount: 5000 },
+  { id: 'gas', name: 'ガス代（プロパンガス）', amount: 8000 },
   { id: 'water', name: '水道代（月割換算）', amount: 4500 },
   { id: 'internet', name: 'インターネット代', amount: 4500 },
   { id: 'food', name: '食費', amount: 50000 },
@@ -80,6 +80,29 @@ export const getInitialTasks = (): Task[] => [
   { id: 50, category: '引越し当日', title: '荷物の搬入・業者への配置指示', statusShunsuke: '未対応', statusAika: '未対応', note: '' },
   { id: 51, category: '引越し当日', title: '当日すぐ使うものの開梱', statusShunsuke: '未対応', statusAika: '未対応', note: '' }
 ];
+
+// 新居寸法データの初期値（すべて未計測）
+export const getInitialDimensions = (): PropertyDimensions => ({
+  entryWidth: '',
+  entryHeight: '',
+  stairsWidth: '',
+  stairsHeight: '',
+  washerWidth: '',
+  washerDepth: '',
+  washerHeight: '',
+  fridgeWidth: '',
+  fridgeDepth: '',
+  curtainLdkWidth: '',
+  curtainLdkHeight: '',
+  curtainRoomWidth: '',
+  curtainRoomHeight: '',
+});
+
+// 周辺環境・ライフラインメモの初期値
+export const getInitialPropertyNotes = (): PropertyNotes => ({
+  gasCompany: '',
+  facilities: '',
+});
 
 // 初期費用計算ロジック (竣介基準)
 export const calculateCosts = (costs: CostItem[]) => {
@@ -152,6 +175,13 @@ export const decodeSyncData = (encodedStr: string): SyncData | null => {
       // globalMonthlyRatioShunsuke が含まれない古いデータの互換性保持
       if (typeof parsed.globalMonthlyRatioShunsuke !== 'number') {
         parsed.globalMonthlyRatioShunsuke = parsed.globalRatioShunsuke;
+      }
+      // dimensions/propertyNotes が含まれない古いデータの互換性保持
+      if (!parsed.dimensions) {
+        parsed.dimensions = getInitialDimensions();
+      }
+      if (!parsed.propertyNotes) {
+        parsed.propertyNotes = getInitialPropertyNotes();
       }
       return parsed as SyncData;
     }
