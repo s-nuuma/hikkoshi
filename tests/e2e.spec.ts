@@ -99,4 +99,12 @@ test.describe('同棲準備・引越し 統合ダッシュボード E2Eテスト
     // 資金ショート防止の警告テキストが表示されているか
     await expect(page.locator('text=資金ショート防止の推奨事項')).toBeVisible();
   });
+
+  test('同期設定タブでリアルタイム自動同期の情報が表示され、招待URLのコピーができること', async ({ page }) => {
+    await page.click('button:has-text("同期設定")');
+    await expect(page.locator('text=リアルタイム自動同期')).toBeVisible();
+    await expect(page.locator('text=現在の接続状況')).toBeVisible();
+    await expect(page.locator('text=現在の部屋ID')).toBeVisible();
+    await expect(page.locator('button:has-text("招待用URLをコピー")')).toBeVisible();
+  });
 });

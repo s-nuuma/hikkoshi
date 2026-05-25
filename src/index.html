@@ -95,16 +95,27 @@
         </div>
         <div>
           <h1 class="text-base font-bold tracking-tight text-slate-900 leading-none">ふたりの新居準備</h1>
-          <span class="text-[10px] text-slate-400 font-medium tracking-wider">HIKKOSHI DASHBOARD</span>
+          <div class="flex items-center gap-1.5 mt-1">
+            <span class="text-[9px] text-slate-400 font-medium tracking-wider leading-none">HIKKOSHI DASHBOARD</span>
+            <div class="flex items-center gap-0.5">
+              <span class="w-1.5 h-1.5 rounded-full" 
+                    :class="[
+                      syncStatus === 'connected' ? 'bg-emerald-500' :
+                      syncStatus === 'connecting' ? 'bg-amber-400 animate-pulse' :
+                      'bg-slate-400'
+                    ]"></span>
+              <span class="text-[7px] font-bold text-slate-400 uppercase">
+                {{ syncStatus === 'connected' ? '同期中' : syncStatus === 'connecting' ? '接続中' : 'オフライン' }}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
-      <!-- LINE クイック同期ボタン -->
-      <button @click="exportSyncCode" 
-              class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold transition-all shadow-sm active:scale-95">
-        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M12 2C6.48 2 2 5.58 2 10.02c0 2.21 1.09 4.2 2.88 5.61-.17.6-.64 2.21-.73 2.53-.1.35.08.34.17.29.09-.05 1.54-.95 2.15-1.37.52.14 1.07.22 1.63.22 5.52 0 10-3.58 10-8.02S17.52 2 12 2z"></path>
-        </svg>
-        <span>LINE同期</span>
+      <!-- 招待URLコピーボタン -->
+      <button @click="copyInviteUrl" 
+              class="flex items-center gap-1 px-3 py-1.5 rounded-full bg-slate-900 hover:bg-slate-850 text-white text-xs font-bold transition-all shadow-sm active:scale-95">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+        <span>招待コピー</span>
       </button>
     </header>
 
@@ -709,49 +720,108 @@
       <!-- 5. 同期設定ビュー -->
       <div v-if="activeTab === 'settings'" class="space-y-6">
         
+        <!-- リアルタイム自動同期カード -->
         <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-4">
-          <div class="flex items-center gap-2 mb-1">
-            <span class="w-8 h-8 rounded-xl bg-emerald-500 flex items-center justify-center text-white">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+          <div class="flex items-center gap-2.5 mb-1">
+            <span class="w-8 h-8 rounded-xl bg-gradient-to-tr from-primary-500 to-secondary-500 flex items-center justify-center text-white shadow-md shadow-primary-200">
+              <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
             </span>
             <div>
-              <h3 class="text-sm font-bold text-slate-900">LINE簡単データ同期</h3>
-              <p class="text-[10px] text-slate-400">片方のデータを文字列で送り、パートナーが同期します</p>
+              <h3 class="text-sm font-bold text-slate-900">リアルタイム自動同期</h3>
+              <p class="text-[10px] text-slate-400">相手を招待するだけで、変更がリアルタイムに共有されます</p>
             </div>
           </div>
 
-          <div class="space-y-3">
-            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200/50 space-y-2">
-              <h4 class="text-xs font-bold text-slate-800">1. 現在のデータをパートナーに送る</h4>
-              <p class="text-[10px] text-slate-400">現在のタスク状況や負担額の設定を1クリックでコピーし、LINEでパートナーに貼り付けて送ってください。</p>
-              <button @click="exportSyncCode" 
-                      class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold transition-all shadow-sm active:scale-95">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
-                <span>同期コードを発行してコピー</span>
-              </button>
+          <!-- 自動同期の接続状態表示 -->
+          <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200/50 space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-slate-800">現在の接続状況</span>
+              <div class="flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full" 
+                      :class="[
+                        syncStatus === 'connected' ? 'bg-emerald-500 shadow-sm shadow-emerald-300' :
+                        syncStatus === 'connecting' ? 'bg-amber-400 animate-pulse' :
+                        'bg-slate-400'
+                      ]"></span>
+                <span class="text-xs font-black"
+                      :class="[
+                        syncStatus === 'connected' ? 'text-emerald-600' :
+                        syncStatus === 'connecting' ? 'text-amber-500' :
+                        'text-slate-500'
+                      ]">
+                  {{ syncStatus === 'connected' ? '同期中（オンライン）' : syncStatus === 'connecting' ? '接続中...' : 'オフライン（ローカル保存）' }}
+                </span>
+              </div>
             </div>
 
-            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200/50 space-y-3">
-              <h4 class="text-xs font-bold text-slate-800">2. パートナーのデータを取り込む</h4>
-              <p class="text-[10px] text-slate-400">パートナーから届いた同期コード（文字列）を下に貼り付け、「インポート実行」をタップします。</p>
-              
-              <textarea v-model="syncInputCode" 
-                        placeholder="ここに同期コードを貼り付けてください..." 
-                        rows="3" 
-                        class="w-full bg-white border border-slate-200 text-[10px] font-mono rounded-xl p-2.5 outline-none focus:border-emerald-400 transition-all"></textarea>
-              
-              <button @click="importSyncCode" 
-                      class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-900 hover:bg-slate-850 text-white text-xs font-bold transition-all shadow-sm active:scale-95">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                <span>インポート実行</span>
-              </button>
+            <!-- 部屋IDの表示 -->
+            <div class="flex justify-between items-center text-[10px] border-t border-slate-200/50 pt-2.5">
+              <span class="text-slate-400 font-bold">現在の部屋ID</span>
+              <span class="font-mono font-bold bg-slate-200/60 text-slate-700 px-2 py-0.5 rounded-md">{{ roomId }}</span>
             </div>
+          </div>
+
+          <!-- パートナーへの共有URLコピーボタン -->
+          <div class="space-y-2">
+            <h4 class="text-xs font-bold text-slate-800">パートナーを招待する</h4>
+            <p class="text-[10px] text-slate-400 leading-normal">
+              下の「招待用URL」をコピーしてパートナーにLINE等で共有してください。パートナーがそのURLを開くだけで、自動的に同じデータでリアルタイム同期されます。
+            </p>
+            <button @click="copyInviteUrl" 
+                    class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-900 hover:bg-slate-850 text-white text-xs font-bold transition-all shadow-sm active:scale-95">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8.684 10.742l-1.996 1.997a3 3 0 11-4.242-4.242L6.442 6.5a3 3 0 014.243 0M15.316 13.258l1.996-1.997a3 3 0 014.242 4.242l-1.996 1.996a3 3 0 01-4.243 0"></path></svg>
+              <span>招待用URLをコピー</span>
+            </button>
           </div>
         </div>
 
+        <!-- 手動バックアップ・復元 (LINE同期) アコーディオン -->
+        <details class="group bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+          <summary class="list-none flex items-center justify-between p-4 cursor-pointer select-none font-bold text-xs text-slate-700 hover:bg-slate-50 active:bg-slate-100">
+            <div class="flex items-center gap-2.5">
+              <span class="w-6 h-6 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+              </span>
+              <span>手動バックアップ・LINE同期 (旧方式)</span>
+            </div>
+            <svg class="w-4 h-4 text-slate-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"></path></svg>
+          </summary>
+          
+          <div class="p-5 border-t border-slate-100 bg-slate-50/50 space-y-4">
+            <div class="space-y-3">
+              <div class="bg-white p-4 rounded-2xl border border-slate-200/50 space-y-2">
+                <h4 class="text-xs font-bold text-slate-800">1. 現在のデータを書き出す</h4>
+                <p class="text-[10px] text-slate-400">現在のデータをテキストコードとしてコピーし、手動のバックアップ等に利用してください。</p>
+                <button @click="exportSyncCode" 
+                        class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold transition-all shadow-sm active:scale-95">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+                  <span>同期コードを発行してコピー</span>
+                </button>
+              </div>
+
+              <div class="bg-white p-4 rounded-2xl border border-slate-200/50 space-y-3">
+                <h4 class="text-xs font-bold text-slate-800">2. 同期コードを取り込む</h4>
+                <p class="text-[10px] text-slate-400">コピーした同期コード（文字列）を下に貼り付け、手動で状態を上書きします。</p>
+                
+                <textarea v-model="syncInputCode" 
+                          placeholder="ここに同期コードを貼り付けてください..." 
+                          rows="3" 
+                          class="w-full bg-white border border-slate-200 text-[10px] font-mono rounded-xl p-2.5 outline-none focus:border-emerald-400 transition-all"></textarea>
+                
+                <button @click="importSyncCode" 
+                        class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-900 hover:bg-slate-850 text-white text-xs font-bold transition-all shadow-sm active:scale-95">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                  <span>インポート実行</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </details>
+
+        <!-- システム管理 -->
         <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-3">
           <h3 class="text-sm font-bold text-slate-900">システム管理</h3>
-          <p class="text-[10px] text-slate-400">アプリをリセットするか、デフォルトに戻します。</p>
+          <p class="text-[10px] text-slate-400">アプリを初期化します。※部屋IDも再生成され、同期状態がリセットされます。</p>
           <button @click="resetAllData" 
                   class="w-full py-2.5 text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 hover:bg-rose-100 active:bg-rose-200 rounded-2xl transition-all">
             すべてのデータをリセット
@@ -798,6 +868,10 @@
     </nav>
 
   </div>
+
+  <!-- Firebase SDK (Compat) -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
   <!-- JavaScript エントリーポイント -->
   <script type="module" src="/src/main.ts"></script>
