@@ -21,7 +21,7 @@
               200: '#bae6fd',
               300: '#7dd3fc',
               400: '#38bdf8',
-              500: '#0ea5e9',
+              500: '#0ea5e9', // Sky Blue
               600: '#0284c7',
               700: '#0369a1',
               800: '#075985',
@@ -33,7 +33,7 @@
               200: '#c7d2fe',
               300: '#a5b4fc',
               400: '#818cf8',
-              500: '#6366f1',
+              500: '#6366f1', // Indigo
               600: '#4f46e5',
               700: '#4338ca',
               800: '#3730a3',
@@ -154,24 +154,24 @@
 
             <!-- 進捗詳細 -->
             <div class="flex-grow space-y-3">
-              <!-- 愛翔 -->
-              <div>
-                <div class="flex justify-between items-baseline mb-1">
-                  <span class="text-xs font-bold text-slate-700">愛翔の進捗</span>
-                  <span class="text-xs font-semibold text-slate-500">{{ taskStats.aiDone }} / {{ taskStats.aiTotal }}</span>
-                </div>
-                <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                  <div class="bg-primary-500 h-full rounded-full transition-all duration-700" :style="{ width: taskStats.aiProgress + '%' }"></div>
-                </div>
-              </div>
-              <!-- 竣介 -->
+              <!-- 竣介 (本アカウント) -->
               <div>
                 <div class="flex justify-between items-baseline mb-1">
                   <span class="text-xs font-bold text-slate-700">竣介の進捗</span>
                   <span class="text-xs font-semibold text-slate-500">{{ taskStats.shunsukeDone }} / {{ taskStats.shunsukeTotal }}</span>
                 </div>
                 <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                  <div class="bg-secondary-500 h-full rounded-full transition-all duration-700" :style="{ width: taskStats.shunsukeProgress + '%' }"></div>
+                  <div class="bg-primary-500 h-full rounded-full transition-all duration-700" :style="{ width: taskStats.shunsukeProgress + '%' }"></div>
+                </div>
+              </div>
+              <!-- 愛翔 (パートナー) -->
+              <div>
+                <div class="flex justify-between items-baseline mb-1">
+                  <span class="text-xs font-bold text-slate-700">愛翔の進捗</span>
+                  <span class="text-xs font-semibold text-slate-500">{{ taskStats.aikaDone }} / {{ taskStats.aikaTotal }}</span>
+                </div>
+                <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                  <div class="bg-secondary-500 h-full rounded-full transition-all duration-700" :style="{ width: taskStats.aikaProgress + '%' }"></div>
                 </div>
               </div>
             </div>
@@ -184,11 +184,13 @@
           
           <div class="flex items-center justify-between mb-4 border-b border-white/10 pb-3">
             <div>
-              <h2 class="text-xs font-bold text-slate-400 tracking-wider">初期費用概算</h2>
-              <p class="text-2xl font-black tracking-tight mt-0.5">{{ costSummary.total.toLocaleString() }} <span class="text-sm font-normal text-slate-300">円</span></p>
+              <h2 class="text-xs font-bold text-slate-400 tracking-wider">初期費用 + 毎月の共通口座振込</h2>
+              <p class="text-xl font-black tracking-tight mt-0.5">
+                合計 {{ costSummary.total.toLocaleString() }}円 <span class="text-xs font-normal text-slate-400">/ 毎月 {{ monthlyCostSummary.total.toLocaleString() }}円</span>
+              </p>
             </div>
             <button @click="activeTab = 'costs'" class="text-[10px] font-bold text-secondary-300 hover:text-white bg-white/5 border border-white/10 px-2.5 py-1 rounded-full transition-all">
-              シミュレーターを開く &rarr;
+              シミュレーター &rarr;
             </button>
           </div>
 
@@ -196,26 +198,28 @@
           <div class="space-y-4">
             <div class="grid grid-cols-2 gap-4">
               <div class="bg-white/5 p-3 rounded-2xl border border-white/5">
-                <span class="text-[10px] text-slate-400 font-bold block mb-1">愛翔 負担額</span>
-                <span class="text-base font-extrabold text-primary-300">{{ costSummary.totalAi.toLocaleString() }} 円</span>
+                <span class="text-[10px] text-slate-400 font-bold block mb-1">竣介 負担額</span>
+                <span class="text-xs font-semibold text-slate-300 block">初期: {{ costSummary.totalShunsuke.toLocaleString() }}円</span>
+                <span class="text-sm font-extrabold text-primary-300 block mt-0.5">毎月: {{ monthlyCostSummary.totalShunsuke.toLocaleString() }}円</span>
               </div>
               <div class="bg-white/5 p-3 rounded-2xl border border-white/5">
-                <span class="text-[10px] text-slate-400 font-bold block mb-1">竣介 負担額</span>
-                <span class="text-base font-extrabold text-secondary-300">{{ costSummary.totalShunsuke.toLocaleString() }} 円</span>
+                <span class="text-[10px] text-slate-400 font-bold block mb-1">愛翔 負担額</span>
+                <span class="text-xs font-semibold text-slate-300 block">初期: {{ costSummary.totalAika.toLocaleString() }}円</span>
+                <span class="text-sm font-extrabold text-secondary-300 block mt-0.5">毎月: {{ monthlyCostSummary.totalAika.toLocaleString() }}円</span>
               </div>
             </div>
 
-            <!-- スタックバー (割合) -->
+            <!-- スタックバー (初期費用の割合) -->
             <div class="space-y-1">
               <div class="w-full h-3 bg-white/10 rounded-full flex overflow-hidden">
                 <div class="bg-primary-500 h-full transition-all duration-500" 
-                     :style="{ width: (costSummary.total > 0 ? (costSummary.totalAi / costSummary.total) * 100 : 50) + '%' }"></div>
-                <div class="bg-secondary-500 h-full transition-all duration-500" 
                      :style="{ width: (costSummary.total > 0 ? (costSummary.totalShunsuke / costSummary.total) * 100 : 50) + '%' }"></div>
+                <div class="bg-secondary-500 h-full transition-all duration-500" 
+                     :style="{ width: (costSummary.total > 0 ? (costSummary.totalAika / costSummary.total) * 100 : 50) + '%' }"></div>
               </div>
               <div class="flex justify-between text-[9px] text-slate-400 font-bold px-1">
-                <span>愛翔: {{ costSummary.total > 0 ? Math.round((costSummary.totalAi / costSummary.total) * 100) : 50 }}%</span>
                 <span>竣介: {{ costSummary.total > 0 ? Math.round((costSummary.totalShunsuke / costSummary.total) * 100) : 50 }}%</span>
+                <span>愛翔: {{ costSummary.total > 0 ? Math.round((costSummary.totalAika / costSummary.total) * 100) : 50 }}%</span>
               </div>
             </div>
           </div>
@@ -236,7 +240,7 @@
           <div class="space-y-2.5">
             <div v-for="task in priorityTasks" :key="task.id" 
                  class="bg-white p-3.5 rounded-2xl border border-slate-100 shadow-sm flex items-start justify-between gap-3">
-              <div class="space-y-1">
+              <div class="space-y-1 flex-grow">
                 <span class="text-[9px] font-bold text-primary-500 bg-primary-50 px-2 py-0.5 rounded-md border border-primary-100">
                   {{ task.category }}
                 </span>
@@ -246,26 +250,36 @@
 
               <!-- クイックステータス変更 -->
               <div class="flex flex-col gap-1.5 shrink-0 items-end">
-                <button @click="toggleTaskStatus(task, 'ai')" 
-                        :class="[
-                          'text-[9px] font-bold px-2 py-1 rounded-full border transition-all text-center min-w-[56px] active:scale-95',
-                          task.statusAi === '未対応' ? 'bg-slate-50 border-slate-200 text-slate-600' :
-                          task.statusAi === '進行中' ? 'bg-amber-50 border-amber-200 text-amber-600' :
-                          task.statusAi === '済' ? 'bg-emerald-50 border-emerald-200 text-emerald-600' :
-                          'bg-rose-50 border-rose-200 text-rose-500'
-                        ]">
-                  愛翔: {{ task.statusAi }}
-                </button>
-                <button @click="toggleTaskStatus(task, 'shunsuke')" 
-                        :class="[
-                          'text-[9px] font-bold px-2 py-1 rounded-full border transition-all text-center min-w-[56px] active:scale-95',
-                          task.statusShunsuke === '未対応' ? 'bg-slate-50 border-slate-200 text-slate-600' :
-                          task.statusShunsuke === '進行中' ? 'bg-amber-50 border-amber-200 text-amber-600' :
-                          task.statusShunsuke === '済' ? 'bg-emerald-50 border-emerald-200 text-emerald-600' :
-                          'bg-rose-50 border-rose-200 text-rose-500'
-                        ]">
-                  竣介: {{ task.statusShunsuke }}
-                </button>
+                <!-- 竣介 (ユーザーA) -->
+                <div class="flex items-center gap-1">
+                  <span class="text-[8px] text-slate-400 font-bold">竣</span>
+                  <button @click="toggleTaskStatus(task, 'shunsuke')" 
+                          :class="[
+                            'text-[9px] font-bold px-2 py-1 rounded-full border transition-all text-center min-w-[58px] active:scale-95',
+                            task.statusShunsuke === '未対応' ? 'bg-slate-50 border-slate-200 text-slate-600' :
+                            task.statusShunsuke === '進行中' ? 'bg-amber-50 border-amber-200 text-amber-600' :
+                            task.statusShunsuke === '済' ? 'bg-emerald-50 border-emerald-200 text-emerald-600' :
+                            task.statusShunsuke === '対象外' ? 'bg-slate-100 border-slate-200 text-slate-400' :
+                            'bg-rose-50 border-rose-200 text-rose-500'
+                          ]">
+                    {{ task.statusShunsuke }}
+                  </button>
+                </div>
+                <!-- 愛翔 (ユーザーB) -->
+                <div class="flex items-center gap-1">
+                  <span class="text-[8px] text-slate-400 font-bold">愛</span>
+                  <button @click="toggleTaskStatus(task, 'aika')" 
+                          :class="[
+                            'text-[9px] font-bold px-2 py-1 rounded-full border transition-all text-center min-w-[58px] active:scale-95',
+                            task.statusAika === '未対応' ? 'bg-slate-50 border-slate-200 text-slate-600' :
+                            task.statusAika === '進行中' ? 'bg-amber-50 border-amber-200 text-amber-600' :
+                            task.statusAika === '済' ? 'bg-emerald-50 border-emerald-200 text-emerald-600' :
+                            task.statusAika === '対象外' ? 'bg-slate-100 border-slate-200 text-slate-400' :
+                            'bg-rose-50 border-rose-200 text-rose-500'
+                          ]">
+                    {{ task.statusAika }}
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -301,8 +315,8 @@
             <div class="col-span-1">
               <select v-model="filterAssignee" class="w-full bg-slate-50 border border-slate-200 text-[10px] font-bold rounded-xl px-2 py-2 outline-none">
                 <option value="all">全員</option>
-                <option value="ai">愛翔の未完了</option>
                 <option value="shunsuke">竣介の未完了</option>
+                <option value="aika">愛翔の未完了</option>
               </select>
             </div>
             <div class="col-span-1">
@@ -312,6 +326,7 @@
                 <option value="進行中">進行中</option>
                 <option value="済">済</option>
                 <option value="やらない">やらない</option>
+                <option value="対象外">対象外</option>
               </select>
             </div>
           </div>
@@ -348,19 +363,7 @@
                 </div>
 
                 <div class="flex items-center justify-end gap-3 pl-6 mt-1">
-                  <div class="flex items-center gap-1.5">
-                    <span class="text-[10px] text-slate-400 font-bold">愛翔</span>
-                    <button @click="toggleTaskStatus(task, 'ai')" 
-                            :class="[
-                              'text-[10px] font-bold px-3 py-1 rounded-full border transition-all text-center min-w-[64px] active:scale-95',
-                              task.statusAi === '未対応' ? 'bg-slate-50 border-slate-200 text-slate-600' :
-                              task.statusAi === '進行中' ? 'bg-amber-50 border-amber-200 text-amber-600' :
-                              task.statusAi === '済' ? 'bg-emerald-50 border-emerald-200 text-emerald-600' :
-                              'bg-rose-50 border-rose-200 text-rose-500'
-                            ]">
-                      {{ task.statusAi }}
-                    </button>
-                  </div>
+                  <!-- 竣介 -->
                   <div class="flex items-center gap-1.5">
                     <span class="text-[10px] text-slate-400 font-bold">竣介</span>
                     <button @click="toggleTaskStatus(task, 'shunsuke')" 
@@ -369,9 +372,25 @@
                               task.statusShunsuke === '未対応' ? 'bg-slate-50 border-slate-200 text-slate-600' :
                               task.statusShunsuke === '進行中' ? 'bg-amber-50 border-amber-200 text-amber-600' :
                               task.statusShunsuke === '済' ? 'bg-emerald-50 border-emerald-200 text-emerald-600' :
+                              task.statusShunsuke === '対象外' ? 'bg-slate-100 border-slate-200 text-slate-400' :
                               'bg-rose-50 border-rose-200 text-rose-500'
                             ]">
                       {{ task.statusShunsuke }}
+                    </button>
+                  </div>
+                  <!-- 愛翔 -->
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-[10px] text-slate-400 font-bold">愛翔</span>
+                    <button @click="toggleTaskStatus(task, 'aika')" 
+                            :class="[
+                              'text-[10px] font-bold px-3 py-1 rounded-full border transition-all text-center min-w-[64px] active:scale-95',
+                              task.statusAika === '未対応' ? 'bg-slate-50 border-slate-200 text-slate-600' :
+                              task.statusAika === '進行中' ? 'bg-amber-50 border-amber-200 text-amber-600' :
+                              task.statusAika === '済' ? 'bg-emerald-50 border-emerald-200 text-emerald-600' :
+                              task.statusAika === '対象外' ? 'bg-slate-100 border-slate-200 text-slate-400' :
+                              'bg-rose-50 border-rose-200 text-rose-500'
+                            ]">
+                      {{ task.statusAika }}
                     </button>
                   </div>
                 </div>
@@ -393,71 +412,136 @@
       <!-- 3. お金シミュレータービュー -->
       <div v-if="activeTab === 'costs'" class="space-y-6">
         
+        <!-- 一括比率スライダー (竣介基準) -->
         <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-4">
           <div class="flex items-center justify-between">
             <div>
-              <h3 class="text-sm font-bold text-slate-900">一括負担比率調整</h3>
-              <p class="text-[10px] text-slate-400 mt-0.5">すべての初期費用の比率を一括で変更します</p>
+              <h3 class="text-sm font-bold text-slate-900">負担比率の調整</h3>
+              <p class="text-[10px] text-slate-400 mt-0.5">初期費用および毎月の生活費に適用されます</p>
             </div>
             <span class="text-sm font-extrabold text-primary-500">
-              愛翔: {{ globalRatioAi }}% / 竣介: {{ 100 - globalRatioAi }}%
+              竣介: {{ globalRatioShunsuke }}% / 愛翔: {{ 100 - globalRatioShunsuke }}%
             </span>
           </div>
 
           <div class="flex items-center gap-3">
-            <span class="text-[10px] text-slate-400 font-bold shrink-0">愛翔</span>
-            <input type="range" min="0" max="100" v-model.number="globalRatioAi" @input="applyGlobalRatio(globalRatioAi)" 
-                   class="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-primary-500 outline-none">
             <span class="text-[10px] text-slate-400 font-bold shrink-0">竣介</span>
+            <input type="range" min="0" max="100" v-model.number="globalRatioShunsuke" @input="applyGlobalRatio(globalRatioShunsuke)" 
+                   class="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-primary-500 outline-none">
+            <span class="text-[10px] text-slate-400 font-bold shrink-0">愛翔</span>
           </div>
 
+          <!-- クイック比率プリセット -->
           <div class="flex gap-2">
             <button v-for="pct in [30, 40, 50, 60, 70]" :key="pct" 
                     @click="applyGlobalRatio(pct)" 
                     :class="[
                       'flex-grow text-[10px] font-bold py-1.5 rounded-xl border transition-all active:scale-95',
-                      globalRatioAi === pct ? 'bg-primary-500 border-primary-500 text-white shadow-sm' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                      globalRatioShunsuke === pct ? 'bg-primary-500 border-primary-500 text-white shadow-sm' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
                     ]">
-              {{ pct === 50 ? '折半 (5:5)' : `愛翔 ${pct}%` }}
+              {{ pct === 50 ? '折半 (5:5)' : `竣介 ${pct}%` }}
             </button>
           </div>
         </div>
 
+        <!-- 負担額のビジュアル表示 -->
         <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-4">
-          <h3 class="text-sm font-bold text-slate-900">負担比率のビジュアル化</h3>
+          <h3 class="text-sm font-bold text-slate-900">各自の合計負担サマリー</h3>
           
           <div class="flex flex-col gap-4">
+            <!-- スタックバー (リアクティブ・アニメーション) -->
             <div class="space-y-1">
               <div class="w-full h-8 bg-slate-100 rounded-2xl flex overflow-hidden shadow-inner border border-slate-200/50">
                 <div class="bg-gradient-to-r from-primary-400 to-primary-500 h-full flex items-center justify-center text-[10px] font-black text-white transition-all duration-300"
-                     :style="{ width: (costSummary.total > 0 ? (costSummary.totalAi / costSummary.total) * 100 : 50) + '%' }">
-                  <span v-if="costSummary.totalAi > 0">愛翔</span>
-                </div>
-                <div class="bg-gradient-to-r from-secondary-400 to-secondary-500 h-full flex items-center justify-center text-[10px] font-black text-white transition-all duration-300"
                      :style="{ width: (costSummary.total > 0 ? (costSummary.totalShunsuke / costSummary.total) * 100 : 50) + '%' }">
                   <span v-if="costSummary.totalShunsuke > 0">竣介</span>
                 </div>
+                <div class="bg-gradient-to-r from-secondary-400 to-secondary-500 h-full flex items-center justify-center text-[10px] font-black text-white transition-all duration-300"
+                     :style="{ width: (costSummary.total > 0 ? (costSummary.totalAika / costSummary.total) * 100 : 50) + '%' }">
+                  <span v-if="costSummary.totalAika > 0">愛翔</span>
+                </div>
               </div>
             </div>
 
+            <!-- 金額情報カード -->
             <div class="grid grid-cols-2 gap-4">
-              <div class="bg-gradient-to-br from-primary-50 to-sky-100/50 p-3.5 rounded-2xl border border-primary-100 relative overflow-hidden">
-                <span class="text-[10px] text-primary-700 font-bold block mb-0.5">愛翔の負担総額</span>
-                <span class="text-lg font-black text-primary-900 leading-none">{{ costSummary.totalAi.toLocaleString() }} <span class="text-xs font-normal">円</span></span>
+              <!-- 竣介 -->
+              <div class="bg-gradient-to-br from-primary-50 to-sky-100/50 p-3.5 rounded-2xl border border-primary-100 space-y-2">
+                <div>
+                  <span class="text-[9px] text-primary-700 font-bold block mb-0.5">竣介の負担</span>
+                  <span class="text-sm font-black text-primary-900 block leading-tight">初期: {{ costSummary.totalShunsuke.toLocaleString() }} 円</span>
+                  <span class="text-xs font-semibold text-slate-500 block">生活費: {{ monthlyCostSummary.totalShunsuke.toLocaleString() }} 円 /月</span>
+                </div>
               </div>
-              <div class="bg-gradient-to-br from-secondary-50 to-indigo-100/50 p-3.5 rounded-2xl border border-secondary-100 relative overflow-hidden">
-                <span class="text-[10px] text-secondary-700 font-bold block mb-0.5">竣介の負担総額</span>
-                <span class="text-lg font-black text-secondary-900 leading-none">{{ costSummary.totalShunsuke.toLocaleString() }} <span class="text-xs font-normal">円</span></span>
+              <!-- 愛翔 -->
+              <div class="bg-gradient-to-br from-secondary-50 to-indigo-100/50 p-3.5 rounded-2xl border border-secondary-100 space-y-2">
+                <div>
+                  <span class="text-[9px] text-secondary-700 font-bold block mb-0.5">愛翔の負担</span>
+                  <span class="text-sm font-black text-secondary-900 block leading-tight">初期: {{ costSummary.totalAika.toLocaleString() }} 円</span>
+                  <span class="text-xs font-semibold text-slate-500 block">生活費: {{ monthlyCostSummary.totalAika.toLocaleString() }} 円 /月</span>
+                </div>
               </div>
-            </div>
-
-            <div class="bg-slate-50 border border-slate-200/60 p-3 rounded-2xl text-center">
-              <span class="text-[10px] text-slate-400 font-bold block">合計初期費用</span>
-              <span class="text-xl font-black text-slate-900">{{ costSummary.total.toLocaleString() }} <span class="text-xs font-normal text-slate-500">円</span></span>
             </div>
           </div>
         </div>
 
+        <!-- 毎月の生活費シミュレーター -->
+        <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+            <h3 class="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+              <svg class="w-4 h-4 text-secondary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+              毎月の生活費シミュレーター
+            </h3>
+            <span class="text-xs font-extrabold text-slate-900 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
+              月額計: {{ monthlyCostSummary.total.toLocaleString() }} 円
+            </span>
+          </div>
+
+          <!-- 各自の月額振込按分表示 -->
+          <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/50 flex justify-between gap-3 text-center">
+            <div class="flex-1">
+              <span class="text-[9px] text-slate-400 font-bold block">竣介 毎月の振込額</span>
+              <span class="text-base font-black text-primary-600">{{ monthlyCostSummary.totalShunsuke.toLocaleString() }} <span class="text-[10px] font-normal">円</span></span>
+            </div>
+            <div class="w-px bg-slate-200"></div>
+            <div class="flex-1">
+              <span class="text-[9px] text-slate-400 font-bold block">愛翔 毎月の振込額</span>
+              <span class="text-base font-black text-secondary-600">{{ monthlyCostSummary.totalAika.toLocaleString() }} <span class="text-[10px] font-normal">円</span></span>
+            </div>
+          </div>
+
+          <!-- 生活費明細 (スライド展開/アコーディオン風) -->
+          <details class="group bg-slate-50/50 rounded-2xl border border-slate-100 overflow-hidden">
+            <summary class="list-none flex items-center justify-between p-3 cursor-pointer select-none font-bold text-xs text-slate-600 active:bg-slate-100">
+              <span>毎月の生活費の内訳（タップして編集）</span>
+              <svg class="w-3.5 h-3.5 text-slate-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"></path></svg>
+            </summary>
+            
+            <div class="p-3 divide-y divide-slate-100/70 bg-white border-t border-slate-100">
+              <div v-for="item in monthlyCosts" :key="item.id" class="py-2.5 flex items-center justify-between gap-3">
+                <span class="text-xs text-slate-700 font-medium">{{ item.name }}</span>
+                <div class="relative flex items-center shrink-0">
+                  <input type="number" 
+                         :value="item.amount" 
+                         @input="updateMonthlyCostAmount(item.id, parseInt($event.target.value) || 0)" 
+                         class="w-28 bg-slate-50 border border-slate-200 text-xs font-bold rounded-xl pr-6 pl-2.5 py-1 text-right outline-none focus:border-primary-400 focus:bg-white transition-all">
+                  <span class="text-[10px] text-slate-400 font-bold absolute right-2">円</span>
+                </div>
+              </div>
+            </div>
+          </details>
+
+          <!-- 警告・注意書き (資金ショート防止) -->
+          <div class="bg-amber-50 border border-amber-200 p-3.5 rounded-2xl flex items-start gap-2.5">
+            <span class="w-5 h-5 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">!</span>
+            <p class="text-[10px] text-amber-800 leading-normal font-medium">
+              <strong>資金ショート防止の推奨事項</strong><br>
+              ※運用開始時は、上記金額とは別に<strong>「初期バッファ」として各自10万円ずつ</strong>追加で共通口座へプールすることを推奨します。
+            </p>
+          </div>
+        </div>
+
+        <!-- 初期費用項目リスト -->
         <div class="space-y-3">
           <div class="flex items-center justify-between px-1">
             <h3 class="text-sm font-bold text-slate-900">初期費用明細</h3>
@@ -481,14 +565,14 @@
 
               <div class="space-y-1 bg-slate-50/60 p-2.5 rounded-2xl border border-slate-100">
                 <div class="flex justify-between text-[9px] text-slate-400 font-bold px-0.5">
-                  <span>愛翔: {{ item.ratioAi }}%</span>
-                  <span>竣介: {{ 100 - item.ratioAi }}%</span>
+                  <span>竣介: {{ item.ratioShunsuke }}%</span>
+                  <span>愛翔: {{ 100 - item.ratioShunsuke }}%</span>
                 </div>
-                <input type="range" min="0" max="100" v-model.number="item.ratioAi" 
+                <input type="range" min="0" max="100" v-model.number="item.ratioShunsuke" 
                        class="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-primary-500 outline-none">
                 <div class="flex justify-between text-[9px] text-slate-400 font-bold px-0.5 mt-1">
-                  <span class="text-primary-600 font-medium">愛翔: {{ Math.round(item.amount * (item.ratioAi / 100)).toLocaleString() }} 円</span>
-                  <span class="text-secondary-600 font-medium">竣介: {{ Math.round(item.amount * ((100 - item.ratioAi) / 100)).toLocaleString() }} 円</span>
+                  <span class="text-primary-600 font-medium">竣介: {{ Math.round(item.amount * (item.ratioShunsuke / 100)).toLocaleString() }} 円</span>
+                  <span class="text-secondary-600 font-medium">愛翔: {{ Math.round(item.amount * ((100 - item.ratioShunsuke) / 100)).toLocaleString() }} 円</span>
                 </div>
               </div>
 
@@ -501,10 +585,37 @@
       <!-- 4. お役立ちガイドビュー -->
       <div v-if="activeTab === 'guide'" class="space-y-6">
         
+        <!-- 手続きステップカード -->
         <div class="space-y-4">
           <h2 class="text-sm font-bold text-slate-900 px-1">引越し前後のお役立ちガイド</h2>
 
           <div class="space-y-3">
+            <!-- クレジットカード手続きガイド (新規追加) -->
+            <div class="bg-gradient-to-br from-indigo-50 to-primary-50/50 p-4.5 rounded-3xl border border-indigo-100 shadow-sm space-y-3">
+              <span class="text-[9px] font-bold text-indigo-600 bg-indigo-100 px-2.5 py-0.5 rounded-md border border-indigo-200 inline-block font-semibold">
+                クレジットカード手続き (共通カードプロセス)
+              </span>
+              <h3 class="text-xs font-bold text-slate-800 leading-tight">毎月の共同生活費支払用カードの実務手順</h3>
+              
+              <div class="space-y-3 mt-2 text-[10px] text-slate-600">
+                <!-- 竣介 -->
+                <div class="bg-white p-3 rounded-2xl border border-slate-100 space-y-1">
+                  <span class="font-bold text-primary-600">▼ 竣介の2枚目カード手続き</span>
+                  <p class="leading-relaxed">
+                    楽天e-NAVIから年会費無料の「通常の楽天カード」を追加申請してください。引き落とし用の共通口座には<strong>「三井住友銀行（Olive）」</strong>を指定・登録します。
+                  </p>
+                </div>
+                <!-- 愛翔 -->
+                <div class="bg-white p-3 rounded-2xl border border-slate-100 space-y-1">
+                  <span class="font-bold text-secondary-600">▼ 愛翔の家族カード手続き</span>
+                  <p class="leading-relaxed">
+                    竣介の2枚目の楽天カードが発行完了した後、引越し・住所変更を全て完了させてから、愛翔名義の家族カードを申請します。続柄は同棲対応のため<strong>「配偶者」</strong>を指定して申請してください。
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- 転出届ガイド -->
             <div class="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm space-y-2">
               <span class="text-[9px] font-bold text-primary-500 bg-primary-50 px-2.5 py-0.5 rounded-md border border-primary-100 inline-block font-medium">
                 引越し前（14日前まで）
@@ -519,6 +630,7 @@
               </div>
             </div>
 
+            <!-- ライフラインガイド -->
             <div class="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm space-y-2">
               <span class="text-[9px] font-bold text-amber-500 bg-amber-50 px-2.5 py-0.5 rounded-md border border-amber-100 inline-block font-medium">
                 引越し2週間前まで
@@ -533,6 +645,7 @@
               </div>
             </div>
 
+            <!-- 当日チェックガイド -->
             <div class="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm space-y-2">
               <span class="text-[9px] font-bold text-rose-500 bg-rose-50 px-2.5 py-0.5 rounded-md border border-rose-100 inline-block font-medium">
                 引越し当日
@@ -543,10 +656,11 @@
               </p>
               <div class="bg-slate-50 p-2.5 rounded-2xl border border-slate-100 text-[10px] text-slate-600 space-y-1">
                 <div class="flex gap-1.5"><span class="text-rose-500 font-bold">●</span><span><strong>傷チェック:</strong> 壁、フローリング、ドア、水回り、クローゼット内部。</span></div>
-                <div class="flex gap-1.5"><span class="text-rose-500 font-bold">●</span><span><strong>記録方法:</strong> 必ずスマホのカメラで日付が入る状態で写真撮影を行い、退去時までデータを保存します。管理会社への提出シートがある場合は当日に記入します。</span></div>
+                <div class="flex gap-1.5"><span class="text-rose-500 font-bold">●</span><span><strong>記録方法:</strong> 必ずスマホのカメラで既存の傷や汚れを写真撮影し、退去時までデータを記録・保存してください。</span></div>
               </div>
             </div>
 
+            <!-- 新生活のライフライン開通確認 -->
             <div class="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm space-y-2">
               <span class="text-[9px] font-bold text-secondary-500 bg-secondary-50 px-2.5 py-0.5 rounded-md border border-secondary-100 inline-block font-medium">
                 引越し後（14日以内）
@@ -575,14 +689,14 @@
             </span>
             <div>
               <h3 class="text-sm font-bold text-slate-900">LINE簡単データ同期</h3>
-              <p class="text-[10px] text-slate-400">片方のデータを文字列で送り、相手が同期します</p>
+              <p class="text-[10px] text-slate-400">片方のデータを文字列で送り、パートナーが同期します</p>
             </div>
           </div>
 
           <div class="space-y-3">
             <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200/50 space-y-2">
-              <h4 class="text-xs font-bold text-slate-800">1. 現在のデータを相手に送る</h4>
-              <p class="text-[10px] text-slate-400">現在のタスク状況や負担額の設定を1クリックでコピーし、LINEで相手に貼り付けて送ってください。</p>
+              <h4 class="text-xs font-bold text-slate-800">1. 現在のデータをパートナーに送る</h4>
+              <p class="text-[10px] text-slate-400">現在のタスク状況や負担額の設定を1クリックでコピーし、LINEでパートナーに貼り付けて送ってください。</p>
               <button @click="exportSyncCode" 
                       class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold transition-all shadow-sm active:scale-95">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
@@ -591,8 +705,8 @@
             </div>
 
             <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200/50 space-y-3">
-              <h4 class="text-xs font-bold text-slate-800">2. 相手のデータを取り込む</h4>
-              <p class="text-[10px] text-slate-400">相手から届いた同期コード（文字列）を下に貼り付け、「インポート実行」をタップします。</p>
+              <h4 class="text-xs font-bold text-slate-800">2. パートナーのデータを取り込む</h4>
+              <p class="text-[10px] text-slate-400">パートナーから届いた同期コード（文字列）を下に貼り付け、「インポート実行」をタップします。</p>
               
               <textarea v-model="syncInputCode" 
                         placeholder="ここに同期コードを貼り付けてください..." 

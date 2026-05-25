@@ -2,25 +2,28 @@ import { createApp, ref, computed, watch, onMounted } from 'vue';
 import {
   getInitialTasks,
   getInitialCosts,
+  getInitialMonthlyCosts,
   calculateCosts,
+  calculateMonthlyCosts,
   encodeSyncData,
   decodeSyncData
 } from './utils';
-import type { Task, CostItem, TaskStatus, SyncData } from './types';
+import type { Task, CostItem, MonthlyCostItem, TaskStatus, SyncData } from './types';
 
 const app = createApp({
   setup() {
     // 状態管理
     const tasks = ref<Task[]>([]);
     const costs = ref<CostItem[]>([]);
-    const globalRatioAi = ref<number>(50); // デフォルト 50%
+    const monthlyCosts = ref<MonthlyCostItem[]>([]);
+    const globalRatioShunsuke = ref<number>(50); // 竣介基準の負担比率 (デフォルト 50%)
     const activeTab = ref<'dashboard' | 'tasks' | 'costs' | 'guide' | 'settings'>('dashboard');
     
     // タスク管理タブ用の検索・フィルタ状態
     const searchQuery = ref('');
     const filterCategory = ref('all');
     const filterStatus = ref<'all' | TaskStatus>('all');
-    const filterAssignee = ref<'all' | 'ai' | 'shunsuke'>('all');
+    const filterAssignee = ref<'all' | 'shunsuke' | 'aika'>('all');
     const taskCategoryOpen = ref<Record<string, boolean>>({});
 
     // 同期システム用の状態
@@ -31,7 +34,7 @@ const app = createApp({
     });
 
     // ローカルストレージキー
-    const STORAGE_KEY = 'hikkoshi_dashboard_data';
+    const STORAGE_KEY = 'hikkoshi_dashboard_data_v2';
 
     // データの読み込み
     const loadFromLocalStorage = () => {
@@ -42,7 +45,8 @@ const app = createApp({
           if (parsed && Array.isArray(parsed.tasks) && Array.isArray(parsed.costs)) {
             tasks.value = parsed.tasks;
             costs.value = parsed.costs;
-            globalRatioAi.value = parsed.globalRatioAi ?? 50;
+            monthlyCosts.value = Array.isArray(parsed.monthlyCosts) ? parsed.monthlyCosts : getInitialMonthlyCosts();
+            globalRatioShunsuke.value = parsed.globalRatioShunsuke ?? 50;
             return;
           }
         }
@@ -53,7 +57,8 @@ const app = createApp({
       // デフォルトデータのロード
       tasks.value = getInitialTasks();
       costs.value = getInitialCosts();
-      globalRatioAi.value = 50;
+      monthlyCosts.value = getInitialMonthlyCosts();
+      globalRatioShunsuke.value = 50;
     };
 
     // データの保存
@@ -61,13 +66,14 @@ const app = createApp({
       const data = {
         tasks: tasks.value,
         costs: costs.value,
-        globalRatioAi: globalRatioAi.value
+        monthlyCosts: monthlyCosts.value,
+        globalRatioShunsuke: globalRatioShunsuke.value
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     };
 
     // 状態変更を監視して自動保存
-    watch([tasks, costs, globalRatioAi], () => {
+    watch([tasks, costs, monthlyCosts, globalRatioShunsuke], () => {
       saveToLocalStorage();
     }, { deep: true });
 
@@ -85,64 +91,68 @@ const app = createApp({
 
     // --- 計算プロパティ ---
 
-    // 各自・全体のタスク統計
     const totalTaskCount = computed(() => tasks.value.length);
     
+    // 進捗率の計算 (やらない・対象外は分母から除外する)
     const taskStats = computed(() => {
       let doneCount = 0;
-      let totalCount = 0; // 「やらない」を除いた有効なタスクの数（完了率計算用）
+      let totalCount = 0; // 全体の有効タスク数（分母）
 
-      let aiDone = 0;
-      let aiTotal = 0;
       let shunsukeDone = 0;
       let shunsukeTotal = 0;
+      let aikaDone = 0;
+      let aikaTotal = 0;
 
       tasks.value.forEach(t => {
-        // 全体の完了率は各自のタスクの平均で出すか、または両者が「済」のものを全体の完了とするか。
-        // ここでは「各自の完了タスク数の合計 / 全体のタスク数」または「全員が完了したタスクの割合」など。
-        // 分かりやすく、各自それぞれの完了率を表示し、全体の完了率は「両者が済の割合」または「各自の進捗の平均値」とする。
-        // ここでは「各自の進捗の平均値」とする。
-        
-        if (t.statusAi !== 'やらない') {
-          aiTotal++;
-          if (t.statusAi === '済') aiDone++;
-        }
-        if (t.statusShunsuke !== 'やらない') {
+        // 竣介の個別進捗
+        if (t.statusShunsuke !== 'やらない' && t.statusShunsuke !== '対象外') {
           shunsukeTotal++;
           if (t.statusShunsuke === '済') shunsukeDone++;
         }
+        // 愛翔の個別進捗
+        if (t.statusAika !== 'やらない' && t.statusAika !== '対象外') {
+          aikaTotal++;
+          if (t.statusAika === '済') aikaDone++;
+        }
 
-        // 全体の完了タスク（両者が済、または「やらない」）
-        const isAiDone = t.statusAi === '済' || t.statusAi === 'やらない';
-        const isShunsukeDone = t.statusShunsuke === '済' || t.statusShunsuke === 'やらない';
+        // 全体の完了判定（両者が済・やらない・対象外のいずれか）
+        const isShunsukeFinished = t.statusShunsuke === '済' || t.statusShunsuke === 'やらない' || t.statusShunsuke === '対象外';
+        const isAikaFinished = t.statusAika === '済' || t.statusAika === 'やらない' || t.statusAika === '対象外';
         
-        if (t.statusAi !== 'やらない' || t.statusShunsuke !== 'やらない') {
+        // どちらか一方でも有効な（やらない・対象外ではない）タスクである場合のみ、全体の分母に含める
+        if ((t.statusShunsuke !== 'やらない' && t.statusShunsuke !== '対象外') || 
+            (t.statusAika !== 'やらない' && t.statusAika !== '対象外')) {
           totalCount++;
-          if (isAiDone && isShunsukeDone) {
+          if (isShunsukeFinished && isAikaFinished) {
             doneCount++;
           }
         }
       });
 
       const overallProgress = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
-      const aiProgress = aiTotal > 0 ? Math.round((aiDone / aiTotal) * 100) : 0;
       const shunsukeProgress = shunsukeTotal > 0 ? Math.round((shunsukeDone / shunsukeTotal) * 100) : 0;
+      const aikaProgress = aikaTotal > 0 ? Math.round((aikaDone / aikaTotal) * 100) : 0;
 
       return {
         overallProgress,
-        aiDone,
-        aiTotal,
-        aiProgress,
         shunsukeDone,
         shunsukeTotal,
-        shunsukeProgress
+        shunsukeProgress,
+        aikaDone,
+        aikaTotal,
+        aikaProgress
       };
     });
 
-    // 優先的に対応すべきタスク (各自が未対応かつ、やらないではないものから上位5件)
+    // 優先的に対応すべきタスク (竣介・愛翔のいずれかが未対応、かつ両者ともに「やらない/対象外」ではないもの上位5件)
     const priorityTasks = computed(() => {
       return tasks.value
-        .filter(t => (t.statusAi === '未対応' || t.statusShunsuke === '未対応') && t.statusAi !== 'やらない' && t.statusShunsuke !== 'やらない')
+        .filter(t => {
+          const isShunsukeActive = t.statusShunsuke !== 'やらない' && t.statusShunsuke !== '対象外';
+          const isAikaActive = t.statusAika !== 'やらない' && t.statusAika !== '対象外';
+          const hasUnaddressed = t.statusShunsuke === '未対応' || t.statusAika === '未対応';
+          return hasUnaddressed && (isShunsukeActive || isAikaActive);
+        })
         .slice(0, 5);
     });
 
@@ -165,22 +175,22 @@ const app = createApp({
         // ステータスマッチ
         let matchStatus = true;
         if (filterStatus.value !== 'all') {
-          if (filterAssignee.value === 'ai') {
-            matchStatus = t.statusAi === filterStatus.value;
-          } else if (filterAssignee.value === 'shunsuke') {
+          if (filterAssignee.value === 'shunsuke') {
             matchStatus = t.statusShunsuke === filterStatus.value;
+          } else if (filterAssignee.value === 'aika') {
+            matchStatus = t.statusAika === filterStatus.value;
           } else {
-            matchStatus = t.statusAi === filterStatus.value || t.statusShunsuke === filterStatus.value;
+            matchStatus = t.statusShunsuke === filterStatus.value || t.statusAika === filterStatus.value;
           }
         }
 
-        // 担当マッチ (未対応などの抽出用)
+        // 担当者絞り込み (未完了の抽出用)
         let matchAssignee = true;
         if (filterAssignee.value !== 'all' && filterStatus.value === 'all') {
-          if (filterAssignee.value === 'ai') {
-            matchAssignee = t.statusAi !== 'やらない' && t.statusAi !== '済';
+          if (filterAssignee.value === 'shunsuke') {
+            matchAssignee = t.statusShunsuke !== 'やらない' && t.statusShunsuke !== '対象外' && t.statusShunsuke !== '済';
           } else {
-            matchAssignee = t.statusShunsuke !== 'やらない' && t.statusShunsuke !== '済';
+            matchAssignee = t.statusAika !== 'やらない' && t.statusAika !== '対象外' && t.statusAika !== '済';
           }
         }
 
@@ -199,32 +209,37 @@ const app = createApp({
       return groups;
     });
 
-    // お金シミュレーションの計算結果
+    // 初期費用の計算結果
     const costSummary = computed(() => {
       return calculateCosts(costs.value);
     });
 
+    // 毎月の生活費の計算結果
+    const monthlyCostSummary = computed(() => {
+      return calculateMonthlyCosts(monthlyCosts.value, globalRatioShunsuke.value);
+    });
+
     // --- アクション/メソッド ---
 
-    // タスクのステータス更新
-    const toggleTaskStatus = (task: Task, person: 'ai' | 'shunsuke') => {
-      const statuses: TaskStatus[] = ['未対応', '進行中', '済', 'やらない'];
-      const current = person === 'ai' ? task.statusAi : task.statusShunsuke;
+    // タスクのステータス更新 (対象外を含めたローテーション)
+    const toggleTaskStatus = (task: Task, person: 'shunsuke' | 'aika') => {
+      const statuses: TaskStatus[] = ['未対応', '進行中', '済', 'やらない', '対象外'];
+      const current = person === 'shunsuke' ? task.statusShunsuke : task.statusAika;
       const nextIndex = (statuses.indexOf(current) + 1) % statuses.length;
       const next = statuses[nextIndex];
 
-      if (person === 'ai') {
-        task.statusAi = next;
-      } else {
+      if (person === 'shunsuke') {
         task.statusShunsuke = next;
+      } else {
+        task.statusAika = next;
       }
     };
 
-    const setTaskStatus = (task: Task, person: 'ai' | 'shunsuke', status: TaskStatus) => {
-      if (person === 'ai') {
-        task.statusAi = status;
-      } else {
+    const setTaskStatus = (task: Task, person: 'shunsuke' | 'aika', status: TaskStatus) => {
+      if (person === 'shunsuke') {
         task.statusShunsuke = status;
+      } else {
+        task.statusAika = status;
       }
     };
 
@@ -233,11 +248,11 @@ const app = createApp({
       taskCategoryOpen.value[category] = !taskCategoryOpen.value[category];
     };
 
-    // 全体の一括負担割合を設定
+    // 全体の一括負担割合を設定 (初期費用に適用)
     const applyGlobalRatio = (val: number) => {
-      globalRatioAi.value = val;
+      globalRatioShunsuke.value = val;
       costs.value.forEach(c => {
-        c.ratioAi = val;
+        c.ratioShunsuke = val;
       });
     };
 
@@ -249,30 +264,39 @@ const app = createApp({
       }
     };
 
+    // 生活費の金額更新
+    const updateMonthlyCostAmount = (costId: string, amount: number) => {
+      const item = monthlyCosts.value.find(c => c.id === costId);
+      if (item) {
+        item.amount = Math.max(0, amount);
+      }
+    };
+
     // 個別比率の更新
     const updateCostRatio = (costId: string, ratio: number) => {
       const item = costs.value.find(c => c.id === costId);
       if (item) {
-        item.ratioAi = Math.min(100, Math.max(0, ratio));
+        item.ratioShunsuke = Math.min(100, Math.max(0, ratio));
       }
     };
 
     // 簡単LINE同期: データエクスポート
     const exportSyncCode = () => {
       const syncData: SyncData = {
-        tasks: tasks.value.map(t => ({ id: t.id, a: t.statusAi, s: t.statusShunsuke })),
-        costs: costs.value.map(c => ({ id: c.id, amount: c.amount, ratio: c.ratioAi })),
-        globalRatioAi: globalRatioAi.value
+        tasks: tasks.value.map(t => ({ id: t.id, s: t.statusShunsuke, a: t.statusAika })),
+        costs: costs.value.map(c => ({ id: c.id, amount: c.amount, ratio: c.ratioShunsuke })),
+        monthlyCosts: monthlyCosts.value.map(c => ({ id: c.id, amount: c.amount })),
+        globalRatioShunsuke: globalRatioShunsuke.value
       };
 
       const code = encodeSyncData(syncData);
       if (code) {
         navigator.clipboard.writeText(code).then(() => {
-          showNotification('success', '同期コードをコピーしました！LINE等で相手に送ってください。');
+          showNotification('success', '同期コードをコピーしました！LINE等でパートナーに送ってください。');
         }).catch(err => {
           console.error('Clipboard copy failed:', err);
-          showNotification('error', 'クリップボードへのコピーに失敗しました。下のコードを手動でコピーしてください。');
-          syncInputCode.value = code; // 失敗時はテキストエリアにコードを表示
+          showNotification('error', 'コピーに失敗しました。下のコードを手動でコピーしてください。');
+          syncInputCode.value = code;
         });
       } else {
         showNotification('error', '同期コードの生成に失敗しました。');
@@ -293,21 +317,29 @@ const app = createApp({
         decoded.tasks.forEach(dt => {
           const task = tasks.value.find(t => t.id === dt.id);
           if (task) {
-            task.statusAi = dt.a;
             task.statusShunsuke = dt.s;
+            task.statusAika = dt.a;
           }
         });
 
-        // 費用状態の復元
+        // 初期費用状態の復元
         decoded.costs.forEach(dc => {
           const cost = costs.value.find(c => c.id === dc.id);
           if (cost) {
             cost.amount = dc.amount;
-            cost.ratioAi = dc.ratio;
+            cost.ratioShunsuke = dc.ratio;
           }
         });
 
-        globalRatioAi.value = decoded.globalRatioAi;
+        // 生活費状態の復元
+        decoded.monthlyCosts.forEach(dmc => {
+          const mCost = monthlyCosts.value.find(mc => mc.id === dmc.id);
+          if (mCost) {
+            mCost.amount = dmc.amount;
+          }
+        });
+
+        globalRatioShunsuke.value = decoded.globalRatioShunsuke;
         
         syncInputCode.value = '';
         showNotification('success', '同期に成功しました！最新のデータが反映されました。');
@@ -329,7 +361,8 @@ const app = createApp({
       if (confirm('すべての設定とタスクを初期状態に戻しますか？（localStorageも消去されます）')) {
         tasks.value = getInitialTasks();
         costs.value = getInitialCosts();
-        globalRatioAi.value = 50;
+        monthlyCosts.value = getInitialMonthlyCosts();
+        globalRatioShunsuke.value = 50;
         localStorage.removeItem(STORAGE_KEY);
         showNotification('success', 'データを初期化しました。');
       }
@@ -338,7 +371,8 @@ const app = createApp({
     return {
       tasks,
       costs,
-      globalRatioAi,
+      monthlyCosts,
+      globalRatioShunsuke,
       activeTab,
       searchQuery,
       filterCategory,
@@ -353,11 +387,13 @@ const app = createApp({
       categories,
       filteredTasksByCategory,
       costSummary,
+      monthlyCostSummary,
       toggleTaskStatus,
       setTaskStatus,
       toggleCategoryAccordion,
       applyGlobalRatio,
       updateCostAmount,
+      updateMonthlyCostAmount,
       updateCostRatio,
       exportSyncCode,
       importSyncCode,
