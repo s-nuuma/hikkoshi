@@ -3,12 +3,14 @@ import {
   getInitialTasks,
   getInitialCosts,
   getInitialMonthlyCosts,
+  getInitialDimensions,
+  getInitialPropertyNotes,
   calculateCosts,
   calculateMonthlyCosts,
   encodeSyncData,
   decodeSyncData
 } from './utils';
-import type { Task, CostItem, MonthlyCostItem, TaskStatus, SyncData } from './types';
+import type { Task, CostItem, MonthlyCostItem, PropertyDimensions, PropertyNotes, TaskStatus, SyncData } from './types';
 
 // Firebase Global Type Declaration
 declare global {
@@ -46,7 +48,9 @@ const app = createApp({
     const monthlyCosts = ref<MonthlyCostItem[]>([]);
     const globalRatioShunsuke = ref<number>(50); // 竣介基準の負担比率 (デフォルト 50%)
     const globalMonthlyRatioShunsuke = ref<number>(50); // 竣介基準の生活費負担比率 (デフォルト 50%)
-    const activeTab = ref<'dashboard' | 'tasks' | 'costs' | 'guide' | 'settings'>('dashboard');
+    const dimensions = ref<PropertyDimensions>(getInitialDimensions()); // 新居寸法データ
+    const propertyNotes = ref<PropertyNotes>(getInitialPropertyNotes()); // 周辺環境・ライフラインメモ
+    const activeTab = ref<'dashboard' | 'tasks' | 'costs' | 'guide' | 'property' | 'settings'>('dashboard');
     
     // Firebase自動同期用の状態
     const roomId = ref<string>('');
@@ -82,6 +86,9 @@ const app = createApp({
             monthlyCosts.value = Array.isArray(parsed.monthlyCosts) ? parsed.monthlyCosts : getInitialMonthlyCosts();
             globalRatioShunsuke.value = parsed.globalRatioShunsuke ?? 50;
             globalMonthlyRatioShunsuke.value = parsed.globalMonthlyRatioShunsuke ?? parsed.globalRatioShunsuke ?? 50;
+            // dimensions/propertyNotes の復元（古いデータとの互換性のため null チェック）
+            dimensions.value = parsed.dimensions ?? getInitialDimensions();
+            propertyNotes.value = parsed.propertyNotes ?? getInitialPropertyNotes();
             return;
           }
         }
@@ -104,13 +111,15 @@ const app = createApp({
         costs: costs.value,
         monthlyCosts: monthlyCosts.value,
         globalRatioShunsuke: globalRatioShunsuke.value,
-        globalMonthlyRatioShunsuke: globalMonthlyRatioShunsuke.value
+        globalMonthlyRatioShunsuke: globalMonthlyRatioShunsuke.value,
+        dimensions: dimensions.value,
+        propertyNotes: propertyNotes.value
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     };
 
     // 状態変更を監視して自動保存＆クラウド同期
-    watch([tasks, costs, monthlyCosts, globalRatioShunsuke, globalMonthlyRatioShunsuke], () => {
+    watch([tasks, costs, monthlyCosts, globalRatioShunsuke, globalMonthlyRatioShunsuke, dimensions, propertyNotes], () => {
       saveToLocalStorage();
       
       // 自分が変更操作をした場合のみFirestoreに同期送信する
@@ -121,6 +130,8 @@ const app = createApp({
           monthlyCosts: monthlyCosts.value.map(c => ({ id: c.id, amount: c.amount })),
           globalRatioShunsuke: globalRatioShunsuke.value,
           globalMonthlyRatioShunsuke: globalMonthlyRatioShunsuke.value,
+          dimensions: dimensions.value,
+          propertyNotes: propertyNotes.value,
           updatedAt: new Date().toISOString()
         }).catch((err: any) => {
           console.error('Firestore auto-sync save failed:', err);
@@ -203,6 +214,13 @@ const app = createApp({
               if (typeof data.globalMonthlyRatioShunsuke === 'number') {
                 globalMonthlyRatioShunsuke.value = data.globalMonthlyRatioShunsuke;
               }
+              // 新居寸法・メモの反映
+              if (data.dimensions && typeof data.dimensions === 'object') {
+                Object.assign(dimensions.value, data.dimensions);
+              }
+              if (data.propertyNotes && typeof data.propertyNotes === 'object') {
+                Object.assign(propertyNotes.value, data.propertyNotes);
+              }
 
               isApplyingSync = false;
               syncStatus.value = 'connected';
@@ -215,6 +233,8 @@ const app = createApp({
                 monthlyCosts: monthlyCosts.value.map(c => ({ id: c.id, amount: c.amount })),
                 globalRatioShunsuke: globalRatioShunsuke.value,
                 globalMonthlyRatioShunsuke: globalMonthlyRatioShunsuke.value,
+                dimensions: dimensions.value,
+                propertyNotes: propertyNotes.value,
                 updatedAt: new Date().toISOString()
               }).then(() => {
                 isApplyingSync = false;
@@ -517,6 +537,8 @@ const app = createApp({
         monthlyCosts.value = getInitialMonthlyCosts();
         globalRatioShunsuke.value = 50;
         globalMonthlyRatioShunsuke.value = 50;
+        dimensions.value = getInitialDimensions();
+        propertyNotes.value = getInitialPropertyNotes();
         localStorage.removeItem(STORAGE_KEY);
         
         // 部屋IDを再生成してURL更新
@@ -548,6 +570,8 @@ const app = createApp({
       tasks,
       costs,
       monthlyCosts,
+      dimensions,
+      propertyNotes,
       globalRatioShunsuke,
       globalMonthlyRatioShunsuke,
       roomId,
