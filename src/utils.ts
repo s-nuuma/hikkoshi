@@ -149,6 +149,10 @@ export const decodeSyncData = (encodedStr: string): SyncData | null => {
       if (!Array.isArray(parsed.monthlyCosts)) {
         parsed.monthlyCosts = getInitialMonthlyCosts().map(c => ({ id: c.id, amount: c.amount }));
       }
+      // globalMonthlyRatioShunsuke が含まれない古いデータの互換性保持
+      if (typeof parsed.globalMonthlyRatioShunsuke !== 'number') {
+        parsed.globalMonthlyRatioShunsuke = parsed.globalRatioShunsuke;
+      }
       return parsed as SyncData;
     }
     return null;

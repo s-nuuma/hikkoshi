@@ -17,6 +17,7 @@ const app = createApp({
     const costs = ref<CostItem[]>([]);
     const monthlyCosts = ref<MonthlyCostItem[]>([]);
     const globalRatioShunsuke = ref<number>(50); // 竣介基準の負担比率 (デフォルト 50%)
+    const globalMonthlyRatioShunsuke = ref<number>(50); // 竣介基準の生活費負担比率 (デフォルト 50%)
     const activeTab = ref<'dashboard' | 'tasks' | 'costs' | 'guide' | 'settings'>('dashboard');
     
     // タスク管理タブ用の検索・フィルタ状態
@@ -47,6 +48,7 @@ const app = createApp({
             costs.value = parsed.costs;
             monthlyCosts.value = Array.isArray(parsed.monthlyCosts) ? parsed.monthlyCosts : getInitialMonthlyCosts();
             globalRatioShunsuke.value = parsed.globalRatioShunsuke ?? 50;
+            globalMonthlyRatioShunsuke.value = parsed.globalMonthlyRatioShunsuke ?? parsed.globalRatioShunsuke ?? 50;
             return;
           }
         }
@@ -59,6 +61,7 @@ const app = createApp({
       costs.value = getInitialCosts();
       monthlyCosts.value = getInitialMonthlyCosts();
       globalRatioShunsuke.value = 50;
+      globalMonthlyRatioShunsuke.value = 50;
     };
 
     // データの保存
@@ -67,13 +70,14 @@ const app = createApp({
         tasks: tasks.value,
         costs: costs.value,
         monthlyCosts: monthlyCosts.value,
-        globalRatioShunsuke: globalRatioShunsuke.value
+        globalRatioShunsuke: globalRatioShunsuke.value,
+        globalMonthlyRatioShunsuke: globalMonthlyRatioShunsuke.value
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     };
 
     // 状態変更を監視して自動保存
-    watch([tasks, costs, monthlyCosts, globalRatioShunsuke], () => {
+    watch([tasks, costs, monthlyCosts, globalRatioShunsuke, globalMonthlyRatioShunsuke], () => {
       saveToLocalStorage();
     }, { deep: true });
 
@@ -216,7 +220,7 @@ const app = createApp({
 
     // 毎月の生活費の計算結果
     const monthlyCostSummary = computed(() => {
-      return calculateMonthlyCosts(monthlyCosts.value, globalRatioShunsuke.value);
+      return calculateMonthlyCosts(monthlyCosts.value, globalMonthlyRatioShunsuke.value);
     });
 
     // --- アクション/メソッド ---
@@ -256,6 +260,11 @@ const app = createApp({
       });
     };
 
+    // 生活費の一括負担割合を設定
+    const applyGlobalMonthlyRatio = (val: number) => {
+      globalMonthlyRatioShunsuke.value = val;
+    };
+
     // 金額の更新
     const updateCostAmount = (costId: string, amount: number) => {
       const item = costs.value.find(c => c.id === costId);
@@ -286,7 +295,8 @@ const app = createApp({
         tasks: tasks.value.map(t => ({ id: t.id, s: t.statusShunsuke, a: t.statusAika })),
         costs: costs.value.map(c => ({ id: c.id, amount: c.amount, ratio: c.ratioShunsuke })),
         monthlyCosts: monthlyCosts.value.map(c => ({ id: c.id, amount: c.amount })),
-        globalRatioShunsuke: globalRatioShunsuke.value
+        globalRatioShunsuke: globalRatioShunsuke.value,
+        globalMonthlyRatioShunsuke: globalMonthlyRatioShunsuke.value
       };
 
       const code = encodeSyncData(syncData);
@@ -340,6 +350,7 @@ const app = createApp({
         });
 
         globalRatioShunsuke.value = decoded.globalRatioShunsuke;
+        globalMonthlyRatioShunsuke.value = decoded.globalMonthlyRatioShunsuke;
         
         syncInputCode.value = '';
         showNotification('success', '同期に成功しました！最新のデータが反映されました。');
@@ -363,6 +374,7 @@ const app = createApp({
         costs.value = getInitialCosts();
         monthlyCosts.value = getInitialMonthlyCosts();
         globalRatioShunsuke.value = 50;
+        globalMonthlyRatioShunsuke.value = 50;
         localStorage.removeItem(STORAGE_KEY);
         showNotification('success', 'データを初期化しました。');
       }
@@ -373,6 +385,7 @@ const app = createApp({
       costs,
       monthlyCosts,
       globalRatioShunsuke,
+      globalMonthlyRatioShunsuke,
       activeTab,
       searchQuery,
       filterCategory,
@@ -392,6 +405,7 @@ const app = createApp({
       setTaskStatus,
       toggleCategoryAccordion,
       applyGlobalRatio,
+      applyGlobalMonthlyRatio,
       updateCostAmount,
       updateMonthlyCostAmount,
       updateCostRatio,
