@@ -88,7 +88,12 @@ const app = createApp({
             globalMonthlyRatioShunsuke.value = parsed.globalMonthlyRatioShunsuke ?? parsed.globalRatioShunsuke ?? 50;
             // dimensions/propertyNotes の復元（古いデータとの互換性のため null チェック）
             dimensions.value = parsed.dimensions ?? getInitialDimensions();
-            propertyNotes.value = parsed.propertyNotes ?? getInitialPropertyNotes();
+            // 古いデータには electricityCompany, waterCompany が含まれていない場合があるためマージする
+            const defaultNotes = getInitialPropertyNotes();
+            propertyNotes.value = {
+              ...defaultNotes,
+              ...(parsed.propertyNotes ?? {})
+            };
             return;
           }
         }
@@ -219,7 +224,13 @@ const app = createApp({
                 Object.assign(dimensions.value, data.dimensions);
               }
               if (data.propertyNotes && typeof data.propertyNotes === 'object') {
-                Object.assign(propertyNotes.value, data.propertyNotes);
+                Object.assign(propertyNotes.value, {
+                  electricityCompany: '',
+                  waterCompany: '',
+                  gasCompany: '',
+                  facilities: '',
+                  ...data.propertyNotes
+                });
               }
 
               isApplyingSync = false;

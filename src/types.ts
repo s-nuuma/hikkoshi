@@ -39,8 +39,10 @@ export interface PropertyDimensions {
 }
 
 export interface PropertyNotes {
-  gasCompany: string; // プロパンガス会社
-  facilities: string; // 最寄りの生活施設（自由記入欄）
+  electricityCompany: string; // 電力会社
+  waterCompany: string;       // 水道局
+  gasCompany: string;         // ガス会社
+  facilities: string;         // 最寄りの生活施設（自由記入欄）
 }
 
 export interface SyncData {

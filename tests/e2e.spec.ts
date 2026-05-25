@@ -72,29 +72,29 @@ test.describe('同棲準備・引越し 統合ダッシュボード E2Eテスト
     const aikaCard = page.locator('div', { hasText: '愛翔の負担' }).filter({ has: page.locator('span') }).last();
 
     // 初期値合計: 728,400円、竣介負担(50%): 364,200円
-    // 生活費合計: 263,000円（ガス代がプロパン8,000円）、竣介負担(50%): 131,500円
+    // 生活費合計: 260,000円（ガス代が都市ガス5,000円）、竣介負担(50%): 130,000円
     await expect(shunsukeCard.locator('text=初期: 364,200 円')).toBeVisible();
-    await expect(shunsukeCard.locator('text=生活費: 131,500 円 /月')).toBeVisible();
+    await expect(shunsukeCard.locator('text=生活費: 130,000 円 /月')).toBeVisible();
     await expect(aikaCard.locator('text=初期: 364,200 円')).toBeVisible();
-    await expect(aikaCard.locator('text=生活費: 131,500 円 /月')).toBeVisible();
+    await expect(aikaCard.locator('text=生活費: 130,000 円 /月')).toBeVisible();
 
     // 初期費用の一括負担割合のみを「竣介 70%」に変更
     await page.locator('h3:has-text("初期費用の一括比率調整")').locator('xpath=ancestor::div[contains(@class, "bg-white")][1]').locator('button:has-text("竣介 70%")').first().click();
 
-    // 初期費用のみ 70% (509,880円) になり、生活費は 50% (131,500円) のままであること
+    // 初期費用のみ 70% (509,880円) になり、生活費は 50% (130,000円) のままであること
     await expect(shunsukeCard.locator('text=初期: 509,880 円')).toBeVisible();
-    await expect(shunsukeCard.locator('text=生活費: 131,500 円 /月')).toBeVisible();
+    await expect(shunsukeCard.locator('text=生活費: 130,000 円 /月')).toBeVisible();
     await expect(aikaCard.locator('text=初期: 218,520 円')).toBeVisible();
-    await expect(aikaCard.locator('text=生活費: 131,500 円 /月')).toBeVisible();
+    await expect(aikaCard.locator('text=生活費: 130,000 円 /月')).toBeVisible();
 
     // 生活費の負担割合のみを「竣介 30%」に変更
     await page.locator('span:has-text("生活費の負担比率")').locator('xpath=ancestor::div[contains(@class, "bg-slate-50")][1]').locator('button:has-text("竣介 30%")').first().click();
 
-    // 初期費用は 70% (509,880円) のままで、生活費が 30% (263,000 * 0.3 = 78,900円) になること
+    // 初期費用は 70% (509,880円) のままで、生活費が 30% (260,000 * 0.3 = 78,000円) になること
     await expect(shunsukeCard.locator('text=初期: 509,880 円')).toBeVisible();
-    await expect(shunsukeCard.locator('text=生活費: 78,900 円 /月')).toBeVisible();
+    await expect(shunsukeCard.locator('text=生活費: 78,000 円 /月')).toBeVisible();
     await expect(aikaCard.locator('text=初期: 218,520 円')).toBeVisible();
-    await expect(aikaCard.locator('text=生活費: 184,100 円 /月')).toBeVisible();
+    await expect(aikaCard.locator('text=生活費: 182,000 円 /月')).toBeVisible();
     
     // 資金ショート防止の警告テキストが表示されているか
     await expect(page.locator('text=資金ショート防止の推奨事項')).toBeVisible();
@@ -115,9 +115,9 @@ test.describe('同棲準備・引越し 統合ダッシュボード E2Eテスト
     // 物件スペックカードの表示確認
     await expect(page.locator('text=ピーチウェアＣ')).toBeVisible();
     await expect(page.locator('text=決定済み物件')).toBeVisible();
-    await expect(page.locator('text=2LDK')).toBeVisible();
-    await expect(page.locator('text=43.9')).toBeVisible();
-    await expect(page.locator('span:has-text("プロパン")').first()).toBeVisible();
+    await expect(page.locator('text=1LDK')).toBeVisible();
+    await expect(page.locator('text=51.75')).toBeVisible();
+    await expect(page.locator('span:has-text("都市ガス")').first()).toBeVisible();
 
     // 採寸テーブルの確認
     await expect(page.locator('text=採寸・搬入チェック')).toBeVisible();
@@ -130,17 +130,25 @@ test.describe('同棲準備・引越し 統合ダッシュボード E2Eテスト
 
     // ライフライン確認エリアの表示
     await expect(page.locator('text=ライフライン・周辺環境')).toBeVisible();
-    await expect(page.locator('text=東京電力')).toBeVisible();
-    await expect(page.locator('text=東京都水道局')).toBeVisible();
 
-    // プロパンガス会社入力フォーム（プレースホルダー：「入居前に管理会社へ確認...」）
-    const gasInput = page.locator('input[placeholder*="管理会社"]');
-    await gasInput.fill('○○プロパンガス');
-    await expect(gasInput).toHaveValue('○○プロパンガス');
+    // 電力会社、水道局、ガス会社それぞれに入力する
+    const elecInput = page.locator('input[placeholder*="契約する電力会社"]');
+    await elecInput.fill('エネワン電気');
+    await expect(elecInput).toHaveValue('エネワン電気');
+
+    const waterInput = page.locator('input[placeholder*="管轄の水道局"]');
+    await waterInput.fill('都水道局第二営業所');
+    await expect(waterInput).toHaveValue('都水道局第二営業所');
+
+    const gasInput = page.locator('input[placeholder*="開栓手続きを行うガス会社"]');
+    await gasInput.fill('東京ガス');
+    await expect(gasInput).toHaveValue('東京ガス');
 
     // リロード後も入力値が保持されていること (localStorage経由)
     await page.reload();
     await page.click('button:has-text("新居")');
-    await expect(page.locator('input[placeholder*="管理会社"]')).toHaveValue('○○プロパンガス');
+    await expect(page.locator('input[placeholder*="契約する電力会社"]')).toHaveValue('エネワン電気');
+    await expect(page.locator('input[placeholder*="管轄の水道局"]')).toHaveValue('都水道局第二営業所');
+    await expect(page.locator('input[placeholder*="開栓手続きを行うガス会社"]')).toHaveValue('東京ガス');
   });
 });

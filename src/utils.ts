@@ -16,7 +16,7 @@ export const getInitialCosts = (): CostItem[] => [
 export const getInitialMonthlyCosts = (): MonthlyCostItem[] => [
   { id: 'rent_management', name: '家賃・管理費', amount: 160000 },
   { id: 'electricity', name: '電気代（木造平均想定）', amount: 11000 },
-  { id: 'gas', name: 'ガス代（プロパンガス）', amount: 8000 },
+  { id: 'gas', name: 'ガス代（都市ガス）', amount: 5000 },
   { id: 'water', name: '水道代（月割換算）', amount: 4500 },
   { id: 'internet', name: 'インターネット代', amount: 4500 },
   { id: 'food', name: '食費', amount: 50000 },
@@ -100,6 +100,8 @@ export const getInitialDimensions = (): PropertyDimensions => ({
 
 // 周辺環境・ライフラインメモの初期値
 export const getInitialPropertyNotes = (): PropertyNotes => ({
+  electricityCompany: '',
+  waterCompany: '',
   gasCompany: '',
   facilities: '',
 });
@@ -182,6 +184,13 @@ export const decodeSyncData = (encodedStr: string): SyncData | null => {
       }
       if (!parsed.propertyNotes) {
         parsed.propertyNotes = getInitialPropertyNotes();
+      } else {
+        if (typeof parsed.propertyNotes.electricityCompany !== 'string') {
+          parsed.propertyNotes.electricityCompany = '';
+        }
+        if (typeof parsed.propertyNotes.waterCompany !== 'string') {
+          parsed.propertyNotes.waterCompany = '';
+        }
       }
       return parsed as SyncData;
     }
