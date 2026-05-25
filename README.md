@@ -2,6 +2,8 @@
 
 同居を始める二人が、スマートフォンのブラウザで快適にタスクを管理し、初期費用を調整・分担できる1ファイルのレスポンシブWebアプリケーション（SPA）です。
 
+**本番公開URL: [https://s-nuuma.github.io/hikkoshi/](https://s-nuuma.github.io/hikkoshi/)**
+
 ## 主な機能
 
 1. **📊 ダッシュボード (進捗状況)**
