@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build && npx tailwindcss -i src/style.css -o dist/style.css --minify && node build.js",
     "preview": "vite preview",
-    "test": "vitest run",
+    "test": "vitest run tests/app.test.ts",
     "test:watch": "vitest",
     "test:e2e": "playwright test"
   },

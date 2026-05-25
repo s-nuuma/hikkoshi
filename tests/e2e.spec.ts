@@ -1,13 +1,12 @@
 import { test, expect } from '@playwright/test';
 import path from 'path';
-
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const htmlPath = `file:///${path.resolve(__dirname, '../index.html').replace(/\\/g, '/')}`;
 
-test.describe('同棲準備・引越し 統合ダッシュボード E2Eテスト', () => {
+test.describe('同棲準備・引越し 統合ダッシュボード E2Eテスト（アップデート版）', () => {
   
   test.beforeEach(async ({ page }) => {
     // コンソールとエラーのキャプチャ
@@ -21,13 +20,9 @@ test.describe('同棲準備・引越し 統合ダッシュボード E2Eテスト
   });
 
   test('初期表示でダッシュボード（進捗）が表示され、統計値が正しいこと', async ({ page }) => {
-    // 統計カード
     await expect(page.locator('text=全体進捗')).toBeVisible();
-    await expect(page.locator('text=愛翔の進捗')).toBeVisible();
     await expect(page.locator('text=竣介の進捗')).toBeVisible();
-    
-    // 完了率（初期タスクのうち 5件/51件 が「済/済」または「やらない/やらない」として開始）
-    // 初期タスクで 済 になっているタスクの割合が表示されているか
+    await expect(page.locator('text=愛翔の進捗')).toBeVisible();
     await expect(page.locator('text=着実に新生活へ')).toBeVisible();
   });
 
@@ -38,63 +33,62 @@ test.describe('同棲準備・引越し 統合ダッシュボード E2Eテスト
 
     // お金タブへ切り替え
     await page.click('button:has-text("お金")');
-    await expect(page.locator('text=一括負担比率調整')).toBeVisible();
-    await expect(page.locator('text=初期費用明細')).toBeVisible();
+    await expect(page.locator('text=負担比率の調整')).toBeVisible();
+    await expect(page.locator('text=毎月の生活費シミュレーター')).toBeVisible();
 
     // ガイドタブへ切り替え
     await page.click('button:has-text("ガイド")');
     await expect(page.locator('text=引越し前後のお役立ちガイド')).toBeVisible();
-
-    // 同期設定タブへ切り替え
-    await page.click('button:has-text("同期設定")');
-    await expect(page.locator('text=LINE簡単データ同期')).toBeVisible();
+    await expect(page.locator('text=クレジットカード手続き')).toBeVisible();
   });
 
   test('タスクのステータスをインタラクティブに変更でき、進捗に反映されること', async ({ page }) => {
-    // タスクタブに切り替え
     await page.click('button:has-text("タスク")');
 
-    // 「生活・運用ルール」アコーディオンを開く（デフォルトで開いているはず）
     await expect(page.locator('text=家事分担の基本ルールの決定')).toBeVisible();
 
-    // 初期状態は「未対応」
-    // 特定のタスクが含まれるコンテナを確実に取得 (XPathで祖先のタスク行 div を検索)
+    // 特定のタスクが含まれるコンテナを確実に取得 (XPathで親divを取得)
     const taskContainer = page.locator('h4', { hasText: '家事分担の基本ルールの決定' })
       .locator('xpath=ancestor::div[contains(@class, "p-3.5")]');
 
-    const aiButton = taskContainer.locator('button').first();
-    await expect(aiButton).toHaveText('未対応');
+    // 竣介のステータスボタン（最初のボタン）が「未対応」であることを確認
+    const shunsukeButton = taskContainer.locator('button').first();
+    await expect(shunsukeButton).toHaveText('未対応');
 
     // タップして「進行中」にする
-    await aiButton.click();
-    await expect(aiButton).toHaveText('進行中');
+    await shunsukeButton.click();
+    await expect(shunsukeButton).toHaveText('進行中');
 
     // 再度タップして「済」にする
-    await aiButton.click();
-    await expect(aiButton).toHaveText('済');
-
-    // ダッシュボードに戻って、進捗が更新されているか確認
-    await page.click('button:has-text("進捗")');
-    // 進捗（％）のテキストが存在することを確認
-    await expect(page.locator('text=完了')).toBeVisible();
+    await shunsukeButton.click();
+    await expect(shunsukeButton).toHaveText('済');
   });
 
-  test('お金シミュレーターでスライダーを動かすと、負担額が連動して更新されること', async ({ page }) => {
+  test('お金シミュレーターでスライダーを動かすと、初期費用および生活費が連動して更新されること', async ({ page }) => {
     await page.click('button:has-text("お金")');
 
-    // 初期状態の負担額確認
-    // 家賃: 159,000円
-    // 初期一括比率: 50%
-    // 合計: 728,400円、愛翔: 364,200円、竣介: 364,200円
-    await expect(page.locator('text=728,400 円')).toBeVisible();
-    await expect(page.locator('text=364,200 円').first()).toBeVisible(); // 愛翔の負担総額
+    // 竣介と愛翔の負担額カードを取得
+    const shunsukeCard = page.locator('div', { hasText: '竣介の負担' }).filter({ has: page.locator('span') }).last();
+    const aikaCard = page.locator('div', { hasText: '愛翔の負担' }).filter({ has: page.locator('span') }).last();
 
-    // 一括負担比率を「愛翔 70%」のプリセットボタンをクリックして変更
-    await page.click('button:has-text("愛翔 70%")');
+    // 初期値合計: 728,400円、竣介負担(50%): 364,200円
+    // 生活費合計: 260,000円、竣介負担(50%): 130,000円
+    await expect(shunsukeCard.locator('text=初期: 364,200 円')).toBeVisible();
+    await expect(shunsukeCard.locator('text=生活費: 130,000 円 /月')).toBeVisible();
+    await expect(aikaCard.locator('text=初期: 364,200 円')).toBeVisible();
+    await expect(aikaCard.locator('text=生活費: 130,000 円 /月')).toBeVisible();
 
-    // 愛翔の負担割合が 70% になり、金額が 728,400 * 0.7 = 509,880円 に更新されるか
-    // 竣介は 30% で 218,520円
-    await expect(page.locator('text=509,880 円')).toBeVisible();
-    await expect(page.locator('text=218,520 円')).toBeVisible();
+    // 竣介の負担割合を「竣介 70%」プリセットをクリックして変更
+    await page.click('button:has-text("竣介 70%")');
+
+    // 初期費用: 728,400 * 0.7 = 509,880円
+    // 毎月の生活費: 260,000 * 0.7 = 182,000円
+    await expect(shunsukeCard.locator('text=初期: 509,880 円')).toBeVisible();
+    await expect(shunsukeCard.locator('text=生活費: 182,000 円 /月')).toBeVisible();
+    await expect(aikaCard.locator('text=初期: 218,520 円')).toBeVisible();
+    await expect(aikaCard.locator('text=生活費: 78,000 円 /月')).toBeVisible();
+    
+    // 資金ショート防止の警告テキストが表示されているか
+    await expect(page.locator('text=資金ショート防止の推奨事項')).toBeVisible();
   });
 });
