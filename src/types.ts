@@ -38,4 +38,5 @@ export interface SyncData {
     amount: number;
   }>;
   globalRatioShunsuke: number; // 竣介のデフォルト負担比率
+  globalMonthlyRatioShunsuke: number; // 竣介の生活費用の負担比率
 }

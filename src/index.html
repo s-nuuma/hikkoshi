@@ -412,38 +412,6 @@
       <!-- 3. お金シミュレータービュー -->
       <div v-if="activeTab === 'costs'" class="space-y-6">
         
-        <!-- 一括比率スライダー (竣介基準) -->
-        <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-4">
-          <div class="flex items-center justify-between">
-            <div>
-              <h3 class="text-sm font-bold text-slate-900">負担比率の調整</h3>
-              <p class="text-[10px] text-slate-400 mt-0.5">初期費用および毎月の生活費に適用されます</p>
-            </div>
-            <span class="text-sm font-extrabold text-primary-500">
-              竣介: {{ globalRatioShunsuke }}% / 愛翔: {{ 100 - globalRatioShunsuke }}%
-            </span>
-          </div>
-
-          <div class="flex items-center gap-3">
-            <span class="text-[10px] text-slate-400 font-bold shrink-0">竣介</span>
-            <input type="range" min="0" max="100" v-model.number="globalRatioShunsuke" @input="applyGlobalRatio(globalRatioShunsuke)" 
-                   class="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-primary-500 outline-none">
-            <span class="text-[10px] text-slate-400 font-bold shrink-0">愛翔</span>
-          </div>
-
-          <!-- クイック比率プリセット -->
-          <div class="flex gap-2">
-            <button v-for="pct in [30, 40, 50, 60, 70]" :key="pct" 
-                    @click="applyGlobalRatio(pct)" 
-                    :class="[
-                      'flex-grow text-[10px] font-bold py-1.5 rounded-xl border transition-all active:scale-95',
-                      globalRatioShunsuke === pct ? 'bg-primary-500 border-primary-500 text-white shadow-sm' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
-                    ]">
-              {{ pct === 50 ? '折半 (5:5)' : `竣介 ${pct}%` }}
-            </button>
-          </div>
-        </div>
-
         <!-- 負担額のビジュアル表示 -->
         <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-4">
           <h3 class="text-sm font-bold text-slate-900">各自の合計負担サマリー</h3>
@@ -497,6 +465,33 @@
             </span>
           </div>
 
+          <!-- 生活費の負担比率スライダー -->
+          <div class="bg-slate-50/50 p-3 rounded-2xl border border-slate-100 space-y-2.5">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] text-slate-500 font-bold">生活費の負担比率</span>
+              <span class="text-[10px] font-extrabold text-secondary-600">
+                竣介: {{ globalMonthlyRatioShunsuke }}% / 愛翔: {{ 100 - globalMonthlyRatioShunsuke }}%
+              </span>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="text-[9px] text-slate-400 font-bold shrink-0">竣介</span>
+              <input type="range" min="0" max="100" v-model.number="globalMonthlyRatioShunsuke" 
+                     class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-secondary-500 outline-none">
+              <span class="text-[9px] text-slate-400 font-bold shrink-0">愛翔</span>
+            </div>
+            <!-- 生活費クイック比率プリセット -->
+            <div class="flex gap-1.5">
+              <button v-for="pct in [30, 40, 50, 60, 70]" :key="pct" 
+                      @click="applyGlobalMonthlyRatio(pct)" 
+                      :class="[
+                        'flex-grow text-[9px] font-bold py-1 rounded-lg border transition-all active:scale-95',
+                        globalMonthlyRatioShunsuke === pct ? 'bg-secondary-500 border-secondary-500 text-white shadow-sm' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                      ]">
+                {{ pct === 50 ? '折半' : `竣介 ${pct}%` }}
+              </button>
+            </div>
+          </div>
+
           <!-- 各自の月額振込按分表示 -->
           <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/50 flex justify-between gap-3 text-center">
             <div class="flex-1">
@@ -538,6 +533,38 @@
               <strong>資金ショート防止の推奨事項</strong><br>
               ※運用開始時は、上記金額とは別に<strong>「初期バッファ」として各自10万円ずつ</strong>追加で共通口座へプールすることを推奨します。
             </p>
+          </div>
+        </div>
+
+        <!-- 初期費用の一括比率スライダー -->
+        <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-3.5">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-xs font-bold text-slate-900">初期費用の一括比率調整</h3>
+              <p class="text-[9px] text-slate-400 mt-0.5">※以下の各項目で個別に比率を設定することも可能です</p>
+            </div>
+            <span class="text-xs font-extrabold text-primary-600">
+              竣介: {{ globalRatioShunsuke }}% / 愛翔: {{ 100 - globalRatioShunsuke }}%
+            </span>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <span class="text-[9px] text-slate-400 font-bold shrink-0">竣介</span>
+            <input type="range" min="0" max="100" v-model.number="globalRatioShunsuke" @input="applyGlobalRatio(globalRatioShunsuke)" 
+                   class="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-primary-500 outline-none">
+            <span class="text-[9px] text-slate-400 font-bold shrink-0">愛翔</span>
+          </div>
+
+          <!-- クイック比率プリセット -->
+          <div class="flex gap-1.5">
+            <button v-for="pct in [30, 40, 50, 60, 70]" :key="pct" 
+                    @click="applyGlobalRatio(pct)" 
+                    :class="[
+                      'flex-grow text-[9px] font-bold py-1 rounded-lg border transition-all active:scale-95',
+                      globalRatioShunsuke === pct ? 'bg-primary-500 border-primary-500 text-white shadow-sm' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                    ]">
+              {{ pct === 50 ? '折半' : `竣介 ${pct}%` }}
+            </button>
           </div>
         </div>
 

@@ -33,7 +33,7 @@ test.describe('同棲準備・引越し 統合ダッシュボード E2Eテスト
 
     // お金タブへ切り替え
     await page.click('button:has-text("お金")');
-    await expect(page.locator('text=負担比率の調整')).toBeVisible();
+    await expect(page.locator('text=初期費用の一括比率調整')).toBeVisible();
     await expect(page.locator('text=毎月の生活費シミュレーター')).toBeVisible();
 
     // ガイドタブへ切り替え
@@ -64,7 +64,7 @@ test.describe('同棲準備・引越し 統合ダッシュボード E2Eテスト
     await expect(shunsukeButton).toHaveText('済');
   });
 
-  test('お金シミュレーターでスライダーを動かすと、初期費用および生活費が連動して更新されること', async ({ page }) => {
+  test('お金シミュレーターでスライダーを動かすと、初期費用および生活費がそれぞれ個別に更新されること', async ({ page }) => {
     await page.click('button:has-text("お金")');
 
     // 竣介と愛翔の負担額カードを取得
@@ -78,15 +78,23 @@ test.describe('同棲準備・引越し 統合ダッシュボード E2Eテスト
     await expect(aikaCard.locator('text=初期: 364,200 円')).toBeVisible();
     await expect(aikaCard.locator('text=生活費: 130,000 円 /月')).toBeVisible();
 
-    // 竣介の負担割合を「竣介 70%」プリセットをクリックして変更
-    await page.click('button:has-text("竣介 70%")');
+    // 初期費用の一括負担割合のみを「竣介 70%」に変更
+    await page.locator('h3:has-text("初期費用の一括比率調整")').locator('xpath=ancestor::div[contains(@class, "bg-white")][1]').locator('button:has-text("竣介 70%")').first().click();
 
-    // 初期費用: 728,400 * 0.7 = 509,880円
-    // 毎月の生活費: 260,000 * 0.7 = 182,000円
+    // 初期費用のみ 70% (509,880円) になり、生活費は 50% (130,000円) のままであること
     await expect(shunsukeCard.locator('text=初期: 509,880 円')).toBeVisible();
-    await expect(shunsukeCard.locator('text=生活費: 182,000 円 /月')).toBeVisible();
+    await expect(shunsukeCard.locator('text=生活費: 130,000 円 /月')).toBeVisible();
     await expect(aikaCard.locator('text=初期: 218,520 円')).toBeVisible();
-    await expect(aikaCard.locator('text=生活費: 78,000 円 /月')).toBeVisible();
+    await expect(aikaCard.locator('text=生活費: 130,000 円 /月')).toBeVisible();
+
+    // 生活費の負担割合のみを「竣介 30%」に変更
+    await page.locator('span:has-text("生活費の負担比率")').locator('xpath=ancestor::div[contains(@class, "bg-slate-50")][1]').locator('button:has-text("竣介 30%")').first().click();
+
+    // 初期費用は 70% (509,880円) のままで、生活費が 30% (260,000 * 0.3 = 78,000円) になること
+    await expect(shunsukeCard.locator('text=初期: 509,880 円')).toBeVisible();
+    await expect(shunsukeCard.locator('text=生活費: 78,000 円 /月')).toBeVisible();
+    await expect(aikaCard.locator('text=初期: 218,520 円')).toBeVisible();
+    await expect(aikaCard.locator('text=生活費: 182,000 円 /月')).toBeVisible();
     
     // 資金ショート防止の警告テキストが表示されているか
     await expect(page.locator('text=資金ショート防止の推奨事項')).toBeVisible();

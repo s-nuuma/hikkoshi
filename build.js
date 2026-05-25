@@ -44,7 +44,7 @@ try {
 ${js}
   </script>
 `;
-  html = html.replace(devScriptTag, productionScripts);
+  html = html.replace(devScriptTag, () => productionScripts);
 
   // 5. 成果物の書き出し
   fs.writeFileSync(distHtmlPath, html, 'utf8');
