@@ -113,7 +113,7 @@ test.describe('同棲準備・引越し 統合ダッシュボード E2Eテスト
     await page.click('button:has-text("新居")');
 
     // 物件スペックカードの表示確認
-    await expect(page.locator('text=ピーチウェアＣ')).toBeVisible();
+    await expect(page.locator('text=ピーチウェアＣ 201号室')).toBeVisible();
     await expect(page.locator('text=決定済み物件')).toBeVisible();
     await expect(page.locator('text=1LDK')).toBeVisible();
     await expect(page.locator('text=51.75')).toBeVisible();
