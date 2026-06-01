@@ -577,6 +577,37 @@ const app = createApp({
       }
     };
 
+    // 住所コピー
+    const copyAddress = (type: 'all' | 'postal' | 'pref' | 'rest' | 'kana') => {
+      let text = '';
+      switch (type) {
+        case 'all':
+          text = '〒223-0052 神奈川県横浜市港北区綱島東１丁目１２−２３ ピーチウェアＣ 201号室';
+          break;
+        case 'postal':
+          text = '223-0052';
+          break;
+        case 'pref':
+          text = '神奈川県横浜市港北区';
+          break;
+        case 'rest':
+          text = '綱島東１丁目１２−２３ ピーチウェアＣ 201号室';
+          break;
+        case 'kana':
+          text = 'かながわけん よこはまし こうほくく つなしまひがし 1ちょうめ 12-23 ぴーちうぇあしー 201ごうしつ';
+          break;
+      }
+
+      if (typeof window !== 'undefined') {
+        navigator.clipboard.writeText(text).then(() => {
+          showNotification('success', 'コピーしました！');
+        }).catch(err => {
+          console.error('Address copy failed:', err);
+          showNotification('error', 'コピーに失敗しました。');
+        });
+      }
+    };
+
     return {
       tasks,
       costs,
@@ -613,7 +644,8 @@ const app = createApp({
       updateCostRatio,
       exportSyncCode,
       importSyncCode,
-      resetAllData
+      resetAllData,
+      copyAddress
     };
   }
 });

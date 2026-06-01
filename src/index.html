@@ -849,6 +849,15 @@
             </div>
           </div>
 
+          <!-- 住所コピーボタン群 -->
+          <div class="flex flex-wrap gap-1.5 mt-2">
+            <button @click="copyAddress('all')" class="text-[9px] font-bold bg-white border border-emerald-200 text-emerald-700 px-2 py-1 rounded-md hover:bg-emerald-50 active:scale-95 transition-all shadow-sm">すべてコピー</button>
+            <button @click="copyAddress('postal')" class="text-[9px] font-bold bg-white border border-emerald-200 text-emerald-700 px-2 py-1 rounded-md hover:bg-emerald-50 active:scale-95 transition-all shadow-sm">郵便番号のみ</button>
+            <button @click="copyAddress('pref')" class="text-[9px] font-bold bg-white border border-emerald-200 text-emerald-700 px-2 py-1 rounded-md hover:bg-emerald-50 active:scale-95 transition-all shadow-sm">県市区のみ</button>
+            <button @click="copyAddress('rest')" class="text-[9px] font-bold bg-white border border-emerald-200 text-emerald-700 px-2 py-1 rounded-md hover:bg-emerald-50 active:scale-95 transition-all shadow-sm">それ以降のみ</button>
+            <button @click="copyAddress('kana')" class="text-[9px] font-bold bg-white border border-emerald-200 text-emerald-700 px-2 py-1 rounded-md hover:bg-emerald-50 active:scale-95 transition-all shadow-sm">ふりがなのみ</button>
+          </div>
+
           <!-- スペックグリッド -->
           <div class="grid grid-cols-2 gap-2.5">
             <div class="bg-white p-3 rounded-2xl border border-emerald-100/70">
