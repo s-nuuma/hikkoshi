@@ -608,6 +608,18 @@ const app = createApp({
       }
     };
 
+    // 汎用のクリップボードコピー
+    const copyToClipboard = (text: string, successMessage: string = 'コピーしました！') => {
+      if (typeof window !== 'undefined') {
+        navigator.clipboard.writeText(text).then(() => {
+          showNotification('success', successMessage);
+        }).catch(err => {
+          console.error('Clipboard copy failed:', err);
+          showNotification('error', 'コピーに失敗しました。');
+        });
+      }
+    };
+
     return {
       tasks,
       costs,
@@ -645,7 +657,8 @@ const app = createApp({
       exportSyncCode,
       importSyncCode,
       resetAllData,
-      copyAddress
+      copyAddress,
+      copyToClipboard
     };
   }
 });
