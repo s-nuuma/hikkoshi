@@ -233,8 +233,10 @@ const app = createApp({
                 });
               }
 
-              isApplyingSync = false;
-              syncStatus.value = 'connected';
+              setTimeout(() => {
+                isApplyingSync = false;
+                syncStatus.value = 'connected';
+              }, 10);
             } else {
               // 部屋ドキュメントが存在しない場合は新規に作成（初期状態をアップロード）
               isApplyingSync = true;
@@ -248,12 +250,16 @@ const app = createApp({
                 propertyNotes: propertyNotes.value,
                 updatedAt: new Date().toISOString()
               }).then(() => {
-                isApplyingSync = false;
-                syncStatus.value = 'connected';
+                setTimeout(() => {
+                  isApplyingSync = false;
+                  syncStatus.value = 'connected';
+                }, 10);
               }).catch((err: any) => {
                 console.error('Initial Firestore set failed:', err);
-                isApplyingSync = false;
-                syncStatus.value = 'offline';
+                setTimeout(() => {
+                  isApplyingSync = false;
+                  syncStatus.value = 'offline';
+                }, 10);
               });
             }
           }, (err: any) => {
